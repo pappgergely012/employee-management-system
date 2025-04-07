@@ -58,7 +58,7 @@ export default function AuthPage() {
       username: "",
       password: "",
       confirmPassword: "",
-      role: "employee", // Default role
+      role: "user", // Default role - must be one of: admin, hr, manager, user
       email: "",
       fullName: "",
     },
