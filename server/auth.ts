@@ -1,6 +1,6 @@
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
-import { Express } from "express";
+import { Express, Request, Response, NextFunction } from "express";
 import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
@@ -95,16 +95,19 @@ export function setupAuth(app: Express) {
 
       const hashedPassword = await hashPassword(validatedData.password);
       
+      // Set role to 'admin' for all newly registered users who weren't invited
+      // This makes any new registration a super admin
       const user = await storage.createUser({
         ...validatedData,
+        role: 'admin', // Override with admin role
         password: hashedPassword,
       });
 
       // Create activity log for user creation
       await storage.createActivityLog({
-        userId: 1, // Admin user
+        userId: user.id,
         action: "User Registration",
-        details: `New user ${validatedData.username} registered with role ${validatedData.role}`
+        details: `New user ${validatedData.username} registered as admin (super admin)`
       });
 
       req.login(user, (err) => {
@@ -126,7 +129,7 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/login", (req, res, next) => {
-    passport.authenticate("local", (err, user, info) => {
+    passport.authenticate("local", (err: any, user: any, info: any) => {
       if (err) return next(err);
       if (!user) {
         return res.status(401).json({ message: "Invalid username or password" });
@@ -190,7 +193,7 @@ export function setupAuth(app: Express) {
 }
 
 // Middleware to check if user is authenticated
-export function isAuthenticated(req: Express.Request, res: Express.Response, next: Express.NextFunction) {
+export function isAuthenticated(req: Request, res: Response, next: NextFunction) {
   if (req.isAuthenticated()) {
     return next();
   }
@@ -198,7 +201,7 @@ export function isAuthenticated(req: Express.Request, res: Express.Response, nex
 }
 
 // Middleware to check if user has admin role
-export function isAdmin(req: Express.Request, res: Express.Response, next: Express.NextFunction) {
+export function isAdmin(req: Request, res: Response, next: NextFunction) {
   if (req.isAuthenticated() && req.user.role === 'admin') {
     return next();
   }
@@ -206,7 +209,7 @@ export function isAdmin(req: Express.Request, res: Express.Response, next: Expre
 }
 
 // Middleware to check if user has HR role
-export function isHR(req: Express.Request, res: Express.Response, next: Express.NextFunction) {
+export function isHR(req: Request, res: Response, next: NextFunction) {
   if (req.isAuthenticated() && (req.user.role === 'admin' || req.user.role === 'hr')) {
     return next();
   }
@@ -214,7 +217,7 @@ export function isHR(req: Express.Request, res: Express.Response, next: Express.
 }
 
 // Middleware to check if user has manager role
-export function isManager(req: Express.Request, res: Express.Response, next: Express.NextFunction) {
+export function isManager(req: Request, res: Response, next: NextFunction) {
   if (req.isAuthenticated() && 
       (req.user.role === 'admin' || req.user.role === 'hr' || req.user.role === 'manager')) {
     return next();

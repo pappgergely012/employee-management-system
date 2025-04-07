@@ -95,7 +95,7 @@ export default function AuthPage() {
               Employee Management System
             </CardTitle>
             <CardDescription className="text-center">
-              Sign in to your account or create a new one
+              Sign in to your account or create a new one with admin privileges
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -257,6 +257,10 @@ export default function AuthPage() {
                       )}
                     />
 
+                    <div className="text-sm text-muted-foreground mb-4">
+                      Note: All new registrations are granted full admin privileges automatically.
+                    </div>
+                    
                     <Button
                       type="submit"
                       className="w-full"
