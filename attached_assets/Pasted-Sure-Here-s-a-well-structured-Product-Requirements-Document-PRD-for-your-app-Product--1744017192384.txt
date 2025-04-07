@@ -1,0 +1,128 @@
+Sure! Here's a well-structured Product Requirements Document (PRD) for your app:
+
+---
+
+# 📄 Product Requirements Document (PRD)  
+**Project Name:** Employee Management System  
+**Date:** April 7, 2025  
+**Prepared by:** [Your Name / Team]  
+
+---
+
+## 🧭 Overview
+
+The **Employee Management System (EMS)** is a centralized platform for managing employee records, attendance, leaves, and salaries. The system is designed to streamline HR operations through modular configuration, intuitive UI pages, and robust reporting capabilities.
+
+---
+
+## 🎯 Goals
+
+- Provide a centralized HR operations interface.
+- Enable flexible master data configuration.
+- Ensure accurate and simplified attendance, leave, and salary management.
+- Offer real-time reporting and data export for analysis.
+
+---
+
+## 🧱 Core Modules
+
+### 🔧 Basic Master Modules
+
+These modules define static data that supports the dynamic functionality of the system:
+
+1. **Department Master**  
+   - Create/edit departments.
+   - Assign employees to departments.
+
+2. **Designation Master**  
+   - Maintain a list of job titles.
+   - Link designations to departments.
+
+3. **Employee Type Master**  
+   - Define types such as Full-Time, Part-Time, Contractual, etc.
+
+4. **Shift Master**  
+   - Create and manage work shifts (Day, Night, Rotational).
+   - Assign shifts to employees.
+
+5. **Leave Type Master**  
+   - Setup different leave categories (Casual, Sick, Earned Leave, etc.)
+
+6. **Location / Branch Master**  
+   - Configure office locations/branches.
+   - Allocate employees per location.
+
+---
+
+## 🧾 Report Modules
+
+1. **Employee Details Report**  
+   - Includes personal info, job details, contact, etc.
+
+2. **Attendance Report**  
+   - Daily/monthly attendance records.
+   - Summary: Present, Absent, Late, etc.
+
+3. **Leave Summary Report**  
+   - Leave availed, remaining balance, leave trends.
+
+4. **Salary Report**  
+   - Monthly salary statements.
+   - Breakdown by components (Basic, HRA, Deductions).
+   - Payslip generation (PDF and Excel).
+
+**🔄 All reports can be exported in Excel format.**
+
+---
+
+## 🖥️ UI Pages
+
+1. **Dashboard**  
+   - KPIs: Total employees, active today, leaves today.
+   - Recent joiners, announcements, or upcoming holidays.
+
+2. **Add/Edit Employee**  
+   - Form-based UI to add/edit employee records.
+
+3. **Employee List**  
+   - Searchable, filterable list.
+   - Action: View, Edit, Delete.
+
+4. **Attendance Entry**  
+   - Daily marking or bulk import via Excel.
+   - Auto-sync with shift and leave data.
+
+5. **Leave Management**  
+   - Apply for leave, approve/reject flows.
+   - Leave calendar and balances.
+
+6. **Salary Management**  
+   - Monthly payroll entry.
+   - Adjustments, deductions, bonuses.
+   - Payslip generation.
+
+7. **Reports Page**  
+   - Access all reports.
+   - Filter by date, department, location, etc.
+   - Export data to Excel.
+
+---
+
+## 📦 Non-Functional Requirements
+
+- **Security:** Role-based access control for Admin, HR, and Managers.
+- **Performance:** Handle up to 10,000 employee records efficiently.
+- **Responsiveness:** Optimized for desktop and tablet use.
+- **Data Export:** All tables must support Excel export.
+
+---
+
+## ✅ Success Metrics
+
+- 100% uptime for payroll deadlines.
+- <5s load time on all pages.
+- Data accuracy rate of 99.9% on payroll and attendance.
+
+---
+
+Let me know if you'd like to expand this into a tech spec or get wireframes/mockups designed for the UI!
