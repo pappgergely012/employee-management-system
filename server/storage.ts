@@ -11,7 +11,8 @@ import {
   leaves, Leave, InsertLeave,
   salary, Salary, InsertSalary,
   activityLogs, ActivityLog, InsertActivityLog,
-  events, Event, InsertEvent
+  events, Event, InsertEvent,
+  orgChartNodes, OrgChartNode, InsertOrgChartNode
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, gte, sql } from "drizzle-orm";
@@ -128,6 +129,17 @@ export interface IStorage {
   createEvent(event: InsertEvent): Promise<Event>;
   updateEvent(id: number, event: Partial<Event>): Promise<Event | undefined>;
   deleteEvent(id: number): Promise<boolean>;
+
+  // Organizational Chart
+  getOrgChartNode(id: number): Promise<OrgChartNode | undefined>;
+  getOrgChartNodes(): Promise<OrgChartNode[]>;
+  getOrgChartNodesByLevel(level: number): Promise<OrgChartNode[]>;
+  getOrgChartNodesByParent(parentId: number | null): Promise<OrgChartNode[]>;
+  createOrgChartNode(node: InsertOrgChartNode): Promise<OrgChartNode>;
+  updateOrgChartNode(id: number, node: Partial<OrgChartNode>): Promise<OrgChartNode | undefined>;
+  deleteOrgChartNode(id: number): Promise<boolean>;
+  moveOrgChartNode(id: number, newParentId: number | null, newOrder: number): Promise<boolean>;
+  getFullOrgChart(): Promise<OrgChartNode[]>;
 
   // Dashboard
   getDashboardStats(): Promise<{
@@ -580,6 +592,102 @@ export class DatabaseStorage implements IStorage {
   async deleteEvent(id: number): Promise<boolean> {
     const result = await db.delete(events).where(eq(events.id, id)).returning();
     return result.length > 0;
+  }
+
+  // Organizational Chart methods
+  async getOrgChartNode(id: number): Promise<OrgChartNode | undefined> {
+    const result = await db.select().from(orgChartNodes).where(eq(orgChartNodes.id, id));
+    return result[0];
+  }
+
+  async getOrgChartNodes(): Promise<OrgChartNode[]> {
+    return db.select().from(orgChartNodes);
+  }
+
+  async getOrgChartNodesByLevel(level: number): Promise<OrgChartNode[]> {
+    return db.select().from(orgChartNodes).where(eq(orgChartNodes.level, level));
+  }
+
+  async getOrgChartNodesByParent(parentId: number | null): Promise<OrgChartNode[]> {
+    if (parentId === null) {
+      return db.select().from(orgChartNodes).where(sql`${orgChartNodes.parentId} IS NULL`);
+    }
+    return db.select().from(orgChartNodes).where(eq(orgChartNodes.parentId, parentId));
+  }
+
+  async createOrgChartNode(node: InsertOrgChartNode): Promise<OrgChartNode> {
+    const result = await db.insert(orgChartNodes).values(node).returning();
+    return result[0];
+  }
+
+  async updateOrgChartNode(id: number, nodeData: Partial<OrgChartNode>): Promise<OrgChartNode | undefined> {
+    const result = await db.update(orgChartNodes)
+      .set(nodeData)
+      .where(eq(orgChartNodes.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async deleteOrgChartNode(id: number): Promise<boolean> {
+    const result = await db.delete(orgChartNodes).where(eq(orgChartNodes.id, id)).returning();
+    return result.length > 0;
+  }
+
+  async moveOrgChartNode(id: number, newParentId: number | null, newOrder: number): Promise<boolean> {
+    // Get the node to move
+    const node = await this.getOrgChartNode(id);
+    if (!node) return false;
+    
+    // Update the node with new parent and order
+    const result = await db.update(orgChartNodes)
+      .set({ 
+        parentId: newParentId, 
+        order: newOrder 
+      })
+      .where(eq(orgChartNodes.id, id))
+      .returning();
+    
+    // Re-order siblings if needed
+    if (result.length > 0) {
+      const siblings = await this.getOrgChartNodesByParent(newParentId);
+      
+      // Sort siblings by order
+      siblings.sort((a, b) => a.order - b.order);
+      
+      // Update orders to ensure they are sequential and have no gaps
+      for (let i = 0; i < siblings.length; i++) {
+        if (siblings[i].id !== id && siblings[i].order >= newOrder) {
+          await db.update(orgChartNodes)
+            .set({ order: siblings[i].order + 1 })
+            .where(eq(orgChartNodes.id, siblings[i].id));
+        }
+      }
+      
+      return true;
+    }
+    
+    return false;
+  }
+
+  async getFullOrgChart(): Promise<OrgChartNode[]> {
+    // Get all nodes and organize them in a hierarchy
+    const allNodes = await this.getOrgChartNodes();
+    
+    // Nodes will be returned in a flattened format but with correct hierarchy information
+    return allNodes.sort((a, b) => {
+      // First sort by level
+      if (a.level !== b.level) {
+        return a.level - b.level;
+      }
+      
+      // Then sort by parent
+      if (a.parentId !== b.parentId) {
+        return (a.parentId || 0) - (b.parentId || 0);
+      }
+      
+      // Finally sort by order
+      return a.order - b.order;
+    });
   }
 
   // Dashboard methods

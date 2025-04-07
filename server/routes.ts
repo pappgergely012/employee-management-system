@@ -14,7 +14,8 @@ import {
   insertAttendanceSchema,
   insertLeaveSchema,
   insertSalarySchema,
-  insertEventSchema
+  insertEventSchema,
+  insertOrgChartNodeSchema
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -1607,6 +1608,257 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(204).send();
     } catch (error) {
       res.status(500).json({ message: "Failed to delete event" });
+    }
+  });
+
+  // Organization Chart routes
+  app.get("/api/org-chart", isAuthenticated, async (req, res) => {
+    try {
+      const nodes = await storage.getFullOrgChart();
+      res.json(nodes);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch organization chart" });
+    }
+  });
+
+  app.get("/api/org-chart/roots", isAuthenticated, async (req, res) => {
+    try {
+      const rootNodes = await storage.getOrgChartNodesByParent(null);
+      res.json(rootNodes);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch root nodes" });
+    }
+  });
+
+  app.get("/api/org-chart/level/:level", isAuthenticated, async (req, res) => {
+    try {
+      const level = parseInt(req.params.level);
+      const nodes = await storage.getOrgChartNodesByLevel(level);
+      res.json(nodes);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch nodes by level" });
+    }
+  });
+
+  app.get("/api/org-chart/children/:parentId", isAuthenticated, async (req, res) => {
+    try {
+      const parentId = parseInt(req.params.parentId);
+      const nodes = await storage.getOrgChartNodesByParent(parentId);
+      res.json(nodes);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch child nodes" });
+    }
+  });
+
+  app.get("/api/org-chart/:id", isAuthenticated, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const node = await storage.getOrgChartNode(id);
+      if (!node) {
+        return res.status(404).json({ message: "Node not found" });
+      }
+      res.json(node);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch node" });
+    }
+  });
+
+  app.post("/api/org-chart", isHR, async (req, res) => {
+    try {
+      const validatedData = insertOrgChartNodeSchema.parse(req.body);
+      
+      // If employee ID is provided, verify employee exists
+      if (validatedData.employeeId) {
+        const employee = await storage.getEmployee(validatedData.employeeId);
+        if (!employee) {
+          return res.status(400).json({ message: "Invalid employee ID" });
+        }
+      }
+      
+      // If parent ID is provided, verify parent exists
+      if (validatedData.parentId) {
+        const parent = await storage.getOrgChartNode(validatedData.parentId);
+        if (!parent) {
+          return res.status(400).json({ message: "Invalid parent node ID" });
+        }
+      }
+
+      const newNode = await storage.createOrgChartNode(validatedData);
+      
+      // Log activity
+      await storage.createActivityLog({
+        userId: req.user.id,
+        action: "Organization Chart Node Created",
+        details: `Added "${validatedData.name}" (${validatedData.title}) to the organization chart`
+      });
+
+      res.status(201).json(newNode);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Validation failed", 
+          errors: error.errors.map(e => ({ field: e.path.join('.'), message: e.message }))
+        });
+      }
+      res.status(500).json({ message: "Failed to create node" });
+    }
+  });
+
+  app.put("/api/org-chart/:id", isHR, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const validatedData = insertOrgChartNodeSchema.parse(req.body);
+      
+      // Get existing node
+      const existingNode = await storage.getOrgChartNode(id);
+      if (!existingNode) {
+        return res.status(404).json({ message: "Node not found" });
+      }
+      
+      // If employee ID is provided, verify employee exists
+      if (validatedData.employeeId) {
+        const employee = await storage.getEmployee(validatedData.employeeId);
+        if (!employee) {
+          return res.status(400).json({ message: "Invalid employee ID" });
+        }
+      }
+      
+      // If parent ID is provided, verify parent exists and prevent circular reference
+      if (validatedData.parentId) {
+        // Cannot set parent to itself
+        if (validatedData.parentId === id) {
+          return res.status(400).json({ message: "A node cannot be its own parent" });
+        }
+        
+        const parent = await storage.getOrgChartNode(validatedData.parentId);
+        if (!parent) {
+          return res.status(400).json({ message: "Invalid parent node ID" });
+        }
+        
+        // Check for circular reference (if parent's parent is this node, etc.)
+        let currentParent = parent;
+        while (currentParent.parentId) {
+          if (currentParent.parentId === id) {
+            return res.status(400).json({ message: "Circular reference detected" });
+          }
+          currentParent = await storage.getOrgChartNode(currentParent.parentId);
+          if (!currentParent) break;
+        }
+      }
+
+      const updatedNode = await storage.updateOrgChartNode(id, validatedData);
+      
+      // Log activity
+      await storage.createActivityLog({
+        userId: req.user.id,
+        action: "Organization Chart Node Updated",
+        details: `Updated "${validatedData.name}" (${validatedData.title}) in the organization chart`
+      });
+
+      res.json(updatedNode);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Validation failed", 
+          errors: error.errors.map(e => ({ field: e.path.join('.'), message: e.message }))
+        });
+      }
+      res.status(500).json({ message: "Failed to update node" });
+    }
+  });
+
+  app.post("/api/org-chart/:id/move", isHR, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { parentId, order } = req.body;
+      
+      // Validate body
+      if (typeof order !== 'number' || order < 0) {
+        return res.status(400).json({ message: "Invalid order value" });
+      }
+      
+      // Get existing node
+      const existingNode = await storage.getOrgChartNode(id);
+      if (!existingNode) {
+        return res.status(404).json({ message: "Node not found" });
+      }
+      
+      // If parent ID is provided, verify parent exists and prevent circular reference
+      if (parentId !== null) {
+        // Cannot set parent to itself
+        if (parentId === id) {
+          return res.status(400).json({ message: "A node cannot be its own parent" });
+        }
+        
+        const parent = await storage.getOrgChartNode(parentId);
+        if (!parent) {
+          return res.status(400).json({ message: "Invalid parent node ID" });
+        }
+        
+        // Check for circular reference (if parent's parent is this node, etc.)
+        let currentParent = parent;
+        while (currentParent.parentId) {
+          if (currentParent.parentId === id) {
+            return res.status(400).json({ message: "Circular reference detected" });
+          }
+          currentParent = await storage.getOrgChartNode(currentParent.parentId);
+          if (!currentParent) break;
+        }
+      }
+
+      const success = await storage.moveOrgChartNode(id, parentId, order);
+      
+      if (!success) {
+        return res.status(500).json({ message: "Failed to move node" });
+      }
+      
+      // Log activity
+      await storage.createActivityLog({
+        userId: req.user.id,
+        action: "Organization Chart Node Moved",
+        details: `Moved node "${existingNode.name}" in the organization chart`
+      });
+
+      res.status(200).json({ message: "Node moved successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to move node" });
+    }
+  });
+
+  app.delete("/api/org-chart/:id", isHR, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      
+      // Get node for activity log
+      const node = await storage.getOrgChartNode(id);
+      if (!node) {
+        return res.status(404).json({ message: "Node not found" });
+      }
+      
+      // Check if node has children
+      const children = await storage.getOrgChartNodesByParent(id);
+      if (children.length > 0) {
+        return res.status(400).json({ 
+          message: "Cannot delete node with children. Remove or reassign children first." 
+        });
+      }
+
+      const success = await storage.deleteOrgChartNode(id);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Node not found" });
+      }
+      
+      // Log activity
+      await storage.createActivityLog({
+        userId: req.user.id,
+        action: "Organization Chart Node Deleted",
+        details: `Deleted "${node.name}" (${node.title}) from the organization chart`
+      });
+
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete node" });
     }
   });
 

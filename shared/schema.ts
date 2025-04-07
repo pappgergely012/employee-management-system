@@ -332,3 +332,29 @@ export type InsertActivityLog = z.infer<typeof insertActivityLogSchema>;
 
 export type Event = typeof events.$inferSelect;
 export type InsertEvent = z.infer<typeof insertEventSchema>;
+
+// Add Organizational Chart schema
+export const orgChartNodes = pgTable("org_chart_nodes", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  title: text("title").notNull(),
+  employeeId: integer("employee_id").references(() => employees.id, { onDelete: 'set null' }),
+  parentId: integer("parent_id"),
+  level: integer("level").notNull(),
+  order: integer("order").notNull().default(0),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertOrgChartNodeSchema = createInsertSchema(orgChartNodes).pick({
+  name: true,
+  title: true,
+  employeeId: true,
+  parentId: true,
+  level: true,
+  order: true,
+  isActive: true,
+});
+
+export type OrgChartNode = typeof orgChartNodes.$inferSelect;
+export type InsertOrgChartNode = z.infer<typeof insertOrgChartNodeSchema>;
