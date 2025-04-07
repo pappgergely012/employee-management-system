@@ -60,7 +60,7 @@ export default function AuthPage() {
       confirmPassword: "",
       role: "employee", // Default role
       email: "",
-      name: "",
+      fullName: "",
     },
   });
 
@@ -171,7 +171,7 @@ export default function AuthPage() {
                   >
                     <FormField
                       control={registerForm.control}
-                      name="name"
+                      name="fullName"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Full Name</FormLabel>
