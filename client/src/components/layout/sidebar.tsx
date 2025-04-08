@@ -176,17 +176,7 @@ export default function Sidebar({ isOpen, closeSidebar }: SidebarProps) {
         </div>
       </nav>
 
-      <div className="absolute bottom-0 w-full p-4 border-t border-gray-200">
-        <Button
-          variant="ghost"
-          className="w-full flex items-center justify-center"
-          onClick={handleLogout}
-          disabled={logoutMutation.isPending}
-        >
-          <LogOut size={18} className="mr-2" />
-          {logoutMutation.isPending ? "Logging out..." : "Logout"}
-        </Button>
-      </div>
+      {/* Footer removed - logout moved to header */}
     </aside>
   );
 }

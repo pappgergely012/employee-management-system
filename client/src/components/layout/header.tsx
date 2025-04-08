@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { Bell, Search, Settings, Menu } from "lucide-react";
+import { Bell, Search, Settings, Menu, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useAuth } from "@/hooks/use-auth";
 
 interface HeaderProps {
   title: string;
@@ -9,6 +10,12 @@ interface HeaderProps {
 }
 
 export default function Header({ title, openSidebar }: HeaderProps) {
+  const { user, logoutMutation } = useAuth();
+
+  const handleLogout = () => {
+    logoutMutation.mutate();
+  };
+
   return (
     <header className="bg-white border-b border-gray-200">
       <div className="flex items-center justify-between px-6 h-16">
@@ -47,6 +54,19 @@ export default function Header({ title, openSidebar }: HeaderProps) {
           <Button variant="ghost" size="icon">
             <Settings className="h-5 w-5 text-gray-500" />
           </Button>
+
+          {/* Logout Button */}
+          {user && (
+            <Button
+              variant="ghost"
+              className="flex items-center text-gray-700 hover:text-primary"
+              onClick={handleLogout}
+              disabled={logoutMutation.isPending}
+            >
+              <LogOut size={18} className="mr-2" />
+              {logoutMutation.isPending ? "..." : "Logout"}
+            </Button>
+          )}
         </div>
       </div>
     </header>

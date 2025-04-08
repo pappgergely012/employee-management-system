@@ -385,63 +385,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-secondary/10 py-12 px-4">
-        <div className="container mx-auto grid grid-cols-1 md:grid-cols-4 gap-8">
-          <div>
-            <div className="flex items-center gap-2 mb-4">
-              <Building className="h-6 w-6 text-primary" />
-              <span className="font-bold text-xl">EMS Pro</span>
-            </div>
-            <p className="text-muted-foreground">
-              Comprehensive employee management system for modern businesses.
-            </p>
-          </div>
-          
-          <div>
-            <h3 className="font-semibold mb-4">Product</h3>
-            <ul className="space-y-2">
-              <li><Link href="#" className="text-muted-foreground hover:text-primary">Features</Link></li>
-              <li><Link href="#" className="text-muted-foreground hover:text-primary">Pricing</Link></li>
-              <li><Link href="#" className="text-muted-foreground hover:text-primary">Integrations</Link></li>
-              <li><Link href="#" className="text-muted-foreground hover:text-primary">Changelog</Link></li>
-            </ul>
-          </div>
-          
-          <div>
-            <h3 className="font-semibold mb-4">Resources</h3>
-            <ul className="space-y-2">
-              <li><Link href="#" className="text-muted-foreground hover:text-primary">Documentation</Link></li>
-              <li><Link href="#" className="text-muted-foreground hover:text-primary">Blog</Link></li>
-              <li><Link href="#" className="text-muted-foreground hover:text-primary">Support</Link></li>
-              <li><Link href="#" className="text-muted-foreground hover:text-primary">API</Link></li>
-            </ul>
-          </div>
-          
-          <div>
-            <h3 className="font-semibold mb-4">Company</h3>
-            <ul className="space-y-2">
-              <li><Link href="#" className="text-muted-foreground hover:text-primary">About</Link></li>
-              <li><Link href="#" className="text-muted-foreground hover:text-primary">Careers</Link></li>
-              <li><Link href="#" className="text-muted-foreground hover:text-primary">Contact</Link></li>
-              <li><Link href="#" className="text-muted-foreground hover:text-primary">Privacy</Link></li>
-            </ul>
-          </div>
-        </div>
-        
-        <div className="container mx-auto mt-12 pt-6 border-t border-border">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <p className="text-muted-foreground text-sm">
-              &copy; {new Date().getFullYear()} EMS Pro. All rights reserved.
-            </p>
-            <div className="flex gap-4 mt-4 md:mt-0">
-              <Link href="#" className="text-muted-foreground hover:text-primary">Terms</Link>
-              <Link href="#" className="text-muted-foreground hover:text-primary">Privacy</Link>
-              <Link href="#" className="text-muted-foreground hover:text-primary">Cookies</Link>
-            </div>
-          </div>
-        </div>
-      </footer>
+      {/* Footer moved to AppLayout component */}
     </div>
   );
 }

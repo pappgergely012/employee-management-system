@@ -20,6 +20,7 @@ import AuthPage from "@/pages/auth-page";
 import HomePage from "@/pages/home-page";
 import { ProtectedRoute } from "./lib/protected-route";
 import { AuthProvider } from "./hooks/use-auth";
+import AppLayout from "@/components/layout/app-layout";
 
 function Router() {
   return (
@@ -54,7 +55,9 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <Router />
+        <AppLayout>
+          <Router />
+        </AppLayout>
         <Toaster />
       </AuthProvider>
     </QueryClientProvider>
