@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import Layout from "@/components/layout/layout";
 import { DataTable } from "@/components/ui/data-table";
@@ -31,7 +31,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/use-auth";
 import {
@@ -64,6 +64,7 @@ type Employee = {
   employeeId: string;
   avatar: string;
   departmentId: number;
+  email: string;
 };
 
 type LeaveType = {
@@ -87,7 +88,7 @@ const leaveFormSchema = z.object({
   endDate: z.date({
     required_error: "Please select an end date",
   }),
-  reason: z.string().min(3, "Please enter a reason for the leave"),
+  reason: z.string().optional(), // Make reason optional
 });
 
 export default function LeaveManagementPage() {
@@ -118,10 +119,21 @@ export default function LeaveManagementPage() {
     queryKey: ['/api/leave-types'],
   });
 
+  // Get the employee ID associated with the current user
+  const { data: userEmployee } = useQuery({
+    queryKey: ['/api/employees', { email: user?.email }],
+    queryFn: async () => {
+      if (!user?.email) return null;
+      const employees = await fetch('/api/employees').then(res => res.json());
+      return employees.find((e: Employee) => e.email === user.email) || null;
+    },
+    enabled: !!user?.email,
+  });
+
   const form = useForm<z.infer<typeof leaveFormSchema>>({
     resolver: zodResolver(leaveFormSchema),
     defaultValues: {
-      employeeId: 0,
+      employeeId: userEmployee?.id || 0,
       leaveTypeId: 0,
       startDate: new Date(),
       endDate: new Date(),
@@ -129,10 +141,17 @@ export default function LeaveManagementPage() {
     },
   });
 
+  // Update form when user employee data is loaded
+  useEffect(() => {
+    if (userEmployee?.id) {
+      form.setValue('employeeId', userEmployee.id);
+    }
+  }, [userEmployee, form]);
+
   // Reset form when dialog closes
   const resetForm = () => {
     form.reset({
-      employeeId: 0,
+      employeeId: userEmployee?.id || 0,
       leaveTypeId: 0,
       startDate: new Date(),
       endDate: new Date(),
@@ -382,24 +401,26 @@ export default function LeaveManagementPage() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Employee</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value.toString()}
-                          value={field.value.toString()}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select an employee" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {employees?.map((employee) => (
-                              <SelectItem key={employee.id} value={employee.id.toString()}>
-                                {employee.firstName} {employee.lastName} ({employee.employeeId})
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <div className="border rounded p-2 bg-muted/30 cursor-not-allowed">
+                          {userEmployee ? (
+                            <div className="flex items-center">
+                              <Avatar className="h-6 w-6 mr-2">
+                                {userEmployee.avatar && <AvatarImage src={userEmployee.avatar} />}
+                                <AvatarFallback>
+                                  {userEmployee.firstName[0]}{userEmployee.lastName[0]}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span>
+                                {userEmployee.firstName} {userEmployee.lastName} ({userEmployee.employeeId})
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground">Loading employee information...</span>
+                          )}
+                        </div>
+                        <FormDescription className="text-xs">
+                          You can only request leave for yourself
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -515,9 +536,11 @@ export default function LeaveManagementPage() {
                     name="reason"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Reason</FormLabel>
+                        <FormLabel className="flex items-center gap-1">
+                          Reason <span className="text-sm text-muted-foreground">(optional)</span>
+                        </FormLabel>
                         <FormControl>
-                          <Textarea placeholder="Enter reason for leave..." {...field} />
+                          <Textarea placeholder="Enter reason for leave (optional)..." {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
