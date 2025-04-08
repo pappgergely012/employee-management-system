@@ -112,10 +112,29 @@ export default function AddEditEmployee() {
   // Update default values when employee data is loaded
   useEffect(() => {
     if (employee) {
-      const dateOfJoining = new Date(employee.dateOfJoining).toISOString().split('T')[0];
-      const dateOfBirth = employee.dateOfBirth
-        ? new Date(employee.dateOfBirth).toISOString().split('T')[0]
-        : "";
+      // Safely format dates to prevent Invalid time value errors
+      let dateOfJoining = "";
+      let dateOfBirth = "";
+      
+      try {
+        // Handle dateOfJoining - this is required so should always exist
+        if (employee.dateOfJoining) {
+          const joinDate = new Date(employee.dateOfJoining);
+          if (!isNaN(joinDate.getTime())) {
+            dateOfJoining = joinDate.toISOString().split('T')[0];
+          }
+        }
+        
+        // Handle dateOfBirth - this is optional
+        if (employee.dateOfBirth) {
+          const birthDate = new Date(employee.dateOfBirth);
+          if (!isNaN(birthDate.getTime())) {
+            dateOfBirth = birthDate.toISOString().split('T')[0];
+          }
+        }
+      } catch (error) {
+        console.error("Error formatting dates:", error);
+      }
 
       form.reset({
         ...employee,
@@ -197,10 +216,18 @@ export default function AddEditEmployee() {
 
   // Form submission
   const onSubmit = (data: FormValues) => {
+    // Ensure dates are properly formatted
+    const formattedData = {
+      ...data,
+      // Ensure date values are properly formatted or set to null/empty if invalid
+      dateOfJoining: data.dateOfJoining || new Date().toISOString().split('T')[0],
+      dateOfBirth: data.dateOfBirth || null
+    };
+    
     if (isEditMode) {
-      updateEmployeeMutation.mutate(data);
+      updateEmployeeMutation.mutate(formattedData);
     } else {
-      createEmployeeMutation.mutate(data);
+      createEmployeeMutation.mutate(formattedData);
     }
   };
 
