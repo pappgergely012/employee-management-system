@@ -109,15 +109,17 @@ export default function AddEditEmployee() {
     },
   });
 
-  // Update default values when employee data is loaded
+  // Update form values when employee data is loaded
   useEffect(() => {
-    if (employee) {
-      // Safely format dates to prevent Invalid time value errors
-      let dateOfJoining = "";
-      let dateOfBirth = "";
+    if (employee && isEditMode) {
+      console.log("Setting form values from employee data:", employee);
       
       try {
-        // Handle dateOfJoining - this is required so should always exist
+        // Format dates properly
+        let dateOfJoining = "";
+        let dateOfBirth = "";
+        
+        // Handle dateOfJoining - this is required
         if (employee.dateOfJoining) {
           const joinDate = new Date(employee.dateOfJoining);
           if (!isNaN(joinDate.getTime())) {
@@ -132,19 +134,36 @@ export default function AddEditEmployee() {
             dateOfBirth = birthDate.toISOString().split('T')[0];
           }
         }
+        
+        // Use setValue for each field to ensure proper state updates
+        form.setValue('employeeId', employee.employeeId);
+        form.setValue('firstName', employee.firstName);
+        form.setValue('lastName', employee.lastName);
+        form.setValue('email', employee.email);
+        form.setValue('phone', employee.phone || "");
+        form.setValue('departmentId', employee.departmentId);
+        form.setValue('designationId', employee.designationId);
+        form.setValue('employeeTypeId', employee.employeeTypeId);
+        form.setValue('shiftId', employee.shiftId);
+        form.setValue('locationId', employee.locationId);
+        form.setValue('dateOfJoining', dateOfJoining);
+        form.setValue('dateOfBirth', dateOfBirth);
+        form.setValue('address', employee.address || "");
+        form.setValue('city', employee.city || "");
+        form.setValue('state', employee.state || "");
+        form.setValue('country', employee.country || "");
+        form.setValue('zipCode', employee.zipCode || "");
+        form.setValue('gender', employee.gender || "");
+        form.setValue('avatar', employee.avatar || "");
+        form.setValue('isActive', employee.isActive);
+        
+        // Also set selected department to filter designations
+        setSelectedDepartmentId(employee.departmentId);
       } catch (error) {
-        console.error("Error formatting dates:", error);
+        console.error("Error setting form values:", error);
       }
-
-      form.reset({
-        ...employee,
-        dateOfJoining,
-        dateOfBirth,
-      });
-
-      setSelectedDepartmentId(employee.departmentId);
     }
-  }, [employee, form]);
+  }, [employee, isEditMode, form]);
 
   // Generate employee ID for new employees
   useEffect(() => {
