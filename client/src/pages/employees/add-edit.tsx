@@ -848,9 +848,9 @@ export default function AddEditEmployee() {
                           </Button>
                         </div>
 
-                        <div className="mt-4">
+                        <div className="mt-4 w-full">
                           {calendarView === "week" && (
-                            <div className="grid grid-cols-7 gap-1">
+                            <div className="grid grid-cols-7 gap-2 w-full">
                               {eachDayOfInterval({
                                 start: startOfWeek(calendarDate),
                                 end: endOfWeek(calendarDate),
@@ -866,33 +866,34 @@ export default function AddEditEmployee() {
                                   <div
                                     key={day.toISOString()}
                                     className={cn(
-                                      "min-h-[100px] p-2 border rounded-md",
-                                      isToday(day) && "bg-accent",
-                                      dayLeaves.length > 0 && "border-primary"
+                                      "h-[120px] p-2 border rounded-md shadow-sm flex flex-col",
+                                      isToday(day) && "bg-accent/50",
+                                      dayLeaves.length > 0 && "border-primary",
+                                      "transition-all hover:shadow-md"
                                     )}
                                   >
-                                    <div className="text-center mb-1 font-medium">
-                                      {format(day, "EEE")}
+                                    <div className="text-center border-b pb-1 mb-2">
+                                      <div className="font-medium text-sm">{format(day, "EEE")}</div>
+                                      <div className="text-xl">{format(day, "d")}</div>
                                     </div>
-                                    <div className="text-center mb-2">
-                                      {format(day, "d")}
+                                    <div className="flex-1 overflow-y-auto space-y-1 scrollbar-thin">
+                                      {dayLeaves.map((leave) => (
+                                        <div key={leave.id} className="mb-1">
+                                          <Badge
+                                            className="w-full justify-center text-xs py-1"
+                                            variant={
+                                              leave.status === "Approved"
+                                                ? "default"
+                                                : leave.status === "Rejected"
+                                                ? "destructive"
+                                                : "outline"
+                                            }
+                                          >
+                                            {leave.leaveType?.name || "Leave"}
+                                          </Badge>
+                                        </div>
+                                      ))}
                                     </div>
-                                    {dayLeaves.map((leave) => (
-                                      <div key={leave.id} className="mb-1">
-                                        <Badge
-                                          className="w-full justify-center text-xs"
-                                          variant={
-                                            leave.status === "Approved"
-                                              ? "default"
-                                              : leave.status === "Rejected"
-                                              ? "destructive"
-                                              : "outline"
-                                          }
-                                        >
-                                          {leave.leaveType?.name || "Leave"}
-                                        </Badge>
-                                      </div>
-                                    ))}
                                   </div>
                                 );
                               })}
@@ -900,60 +901,85 @@ export default function AddEditEmployee() {
                           )}
 
                           {calendarView === "month" && (
-                            <Calendar
-                              mode="multiple"
-                              selected={employeeLeaves.flatMap((leave) => {
-                                const startDate = new Date(leave.startDate);
-                                const endDate = new Date(leave.endDate);
-                                if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-                                  return [];
-                                }
+                            <div className="w-full border rounded-md overflow-hidden shadow-sm">
+                              <Calendar
+                                mode="multiple"
+                                selected={employeeLeaves.flatMap((leave) => {
+                                  const startDate = new Date(leave.startDate);
+                                  const endDate = new Date(leave.endDate);
+                                  if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+                                    return [];
+                                  }
 
-                                // Get all dates between start and end
-                                return eachDayOfInterval({
-                                  start: startDate,
-                                  end: endDate,
-                                });
-                              })}
-                              month={calendarDate}
-                              onMonthChange={setCalendarDate}
-                              className="rounded-md border p-3"
-                              components={{
-                                DayContent: (props) => {
-                                  const date = props.date;
-                                  const dayLeaves = employeeLeaves.filter((leave) => {
-                                    const startDate = new Date(leave.startDate);
-                                    const endDate = new Date(leave.endDate);
-                                    return date >= startDate && date <= endDate;
+                                  // Get all dates between start and end
+                                  return eachDayOfInterval({
+                                    start: startDate,
+                                    end: endDate,
                                   });
+                                })}
+                                month={calendarDate}
+                                onMonthChange={setCalendarDate}
+                                className="w-full rounded-md p-4"
+                                classNames={{
+                                  months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
+                                  month: "space-y-4 w-full",
+                                  caption: "flex justify-center pt-1 relative items-center",
+                                  caption_label: "text-sm font-medium",
+                                  nav: "space-x-1 flex items-center",
+                                  nav_button: "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100",
+                                  nav_button_previous: "absolute left-1",
+                                  nav_button_next: "absolute right-1",
+                                  table: "w-full border-collapse space-y-1",
+                                  head_row: "flex w-full",
+                                  head_cell: "w-full text-muted-foreground rounded-md flex-1 font-normal text-[0.8rem]",
+                                  row: "flex w-full mt-2",
+                                  cell: "h-10 w-full relative text-center text-sm p-0 rounded-md focus-within:relative focus-within:z-20",
+                                  day: "h-10 w-10 p-0 mx-auto hover:bg-accent hover:text-accent-foreground",
+                                  day_range_end: "day-range-end",
+                                  day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
+                                  day_today: "bg-accent text-accent-foreground",
+                                  day_outside: "opacity-50",
+                                  day_disabled: "text-muted-foreground opacity-50",
+                                  day_range_middle: "aria-selected:bg-accent aria-selected:text-accent-foreground",
+                                  day_hidden: "invisible",
+                                }}
+                                components={{
+                                  DayContent: (props) => {
+                                    const date = props.date;
+                                    const dayLeaves = employeeLeaves.filter((leave) => {
+                                      const startDate = new Date(leave.startDate);
+                                      const endDate = new Date(leave.endDate);
+                                      return date >= startDate && date <= endDate;
+                                    });
 
-                                  const showDayOfMonth = isSameMonth(date, calendarDate);
+                                    const showDayOfMonth = isSameMonth(date, calendarDate);
 
-                                  return (
-                                    <div className="relative h-9 w-9 p-0 font-normal aria-selected:opacity-100">
-                                      <div
-                                        className={cn(
-                                          "flex h-full w-full items-center justify-center rounded-md",
-                                          dayLeaves.length > 0 && showDayOfMonth && 
-                                            "bg-primary/10 text-primary font-medium"
-                                        )}
-                                      >
-                                        {showDayOfMonth ? date.getDate() : null}
-                                      </div>
-                                      {dayLeaves.length > 0 && showDayOfMonth && (
-                                        <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2">
-                                          <div className="h-1 w-1 rounded-full bg-primary"></div>
+                                    return (
+                                      <div className="relative h-10 w-10 p-0 font-normal aria-selected:opacity-100 flex items-center justify-center">
+                                        <div
+                                          className={cn(
+                                            "flex h-8 w-8 items-center justify-center rounded-md",
+                                            dayLeaves.length > 0 && showDayOfMonth && 
+                                              "bg-primary/10 text-primary font-medium"
+                                          )}
+                                        >
+                                          {showDayOfMonth ? date.getDate() : null}
                                         </div>
-                                      )}
-                                    </div>
-                                  );
-                                },
-                              }}
-                            />
+                                        {dayLeaves.length > 0 && showDayOfMonth && (
+                                          <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2">
+                                            <div className="h-1.5 w-1.5 rounded-full bg-primary"></div>
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  },
+                                }}
+                              />
+                            </div>
                           )}
 
                           {calendarView === "year" && (
-                            <div className="grid grid-cols-3 md:grid-cols-4 gap-4">
+                            <div className="grid grid-cols-3 md:grid-cols-4 gap-3 w-full">
                               {Array.from({ length: 12 }).map((_, index) => {
                                 const month = new Date(calendarDate.getFullYear(), index, 1);
                                 const monthName = format(month, "MMM");
@@ -973,15 +999,16 @@ export default function AddEditEmployee() {
                                   );
                                 });
                                 
+                                const isCurrentMonth = new Date().getMonth() === index && 
+                                                      new Date().getFullYear() === calendarDate.getFullYear();
+                                
                                 return (
                                   <div 
                                     key={index}
                                     className={cn(
-                                      "p-3 border rounded-md text-center cursor-pointer hover:bg-accent",
+                                      "aspect-square p-3 border rounded-md text-center cursor-pointer hover:bg-accent/50 hover:shadow-md transition-all shadow-sm flex flex-col justify-between",
                                       monthLeaves.length > 0 && "border-primary",
-                                      new Date().getMonth() === index && 
-                                      new Date().getFullYear() === calendarDate.getFullYear() && 
-                                      "bg-accent"
+                                      isCurrentMonth && "bg-accent/50"
                                     )}
                                     onClick={() => {
                                       const newDate = new Date(calendarDate);
@@ -990,11 +1017,13 @@ export default function AddEditEmployee() {
                                       setCalendarView("month");
                                     }}
                                   >
-                                    <div className="font-medium">{monthName}</div>
-                                    {monthLeaves.length > 0 && (
-                                      <Badge className="mt-2">
+                                    <div className="font-medium text-lg">{monthName}</div>
+                                    {monthLeaves.length > 0 ? (
+                                      <Badge variant="outline" className="mt-auto mx-auto">
                                         {monthLeaves.length} {monthLeaves.length === 1 ? "leave" : "leaves"}
                                       </Badge>
+                                    ) : (
+                                      <div className="text-sm text-muted-foreground mt-auto">No leaves</div>
                                     )}
                                   </div>
                                 );
