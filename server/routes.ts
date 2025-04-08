@@ -789,6 +789,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Employee routes
   app.get("/api/employees", isAuthenticated, async (req, res) => {
     try {
+      // Check if email query parameter exists
+      if (req.query.email) {
+        const email = req.query.email as string;
+        const employees = await storage.getEmployees();
+        const employee = employees.find(e => e.email === email);
+        
+        if (employee) {
+          return res.json(employee);
+        } else {
+          return res.status(404).json({ message: "Employee not found" });
+        }
+      }
+      
+      // If no email query, return all employees
       const employees = await storage.getEmployees();
       res.json(employees);
     } catch (error) {

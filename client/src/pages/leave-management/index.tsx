@@ -124,8 +124,14 @@ export default function LeaveManagementPage() {
     queryKey: ['/api/employees', { email: user?.email }],
     queryFn: async () => {
       if (!user?.email) return null;
-      const employees = await fetch('/api/employees').then(res => res.json());
-      return employees.find((e: Employee) => e.email === user.email) || null;
+      const response = await fetch(`/api/employees?email=${user.email}`);
+      if (!response.ok) {
+        if (response.status === 404) {
+          return null;
+        }
+        throw new Error('Failed to fetch employee data');
+      }
+      return await response.json();
     },
     enabled: !!user?.email,
   });
@@ -230,8 +236,24 @@ export default function LeaveManagementPage() {
   });
 
   const onSubmit = (data: z.infer<typeof leaveFormSchema>) => {
+    // Make sure we have a valid employee ID
+    if (!userEmployee?.id) {
+      toast({
+        title: "Employee not found",
+        description: "Could not find your employee record. Please contact HR.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Set the employeeId explicitly from the userEmployee data
+    const formData = {
+      ...data,
+      employeeId: userEmployee.id
+    };
+
     // Validate that end date is not before start date
-    if (data.endDate < data.startDate) {
+    if (formData.endDate < formData.startDate) {
       toast({
         title: "Invalid date range",
         description: "End date cannot be before start date",
@@ -241,7 +263,7 @@ export default function LeaveManagementPage() {
     }
 
     // Check that selected leave type exists
-    const selectedLeaveType = leaveTypes?.find(lt => lt.id === data.leaveTypeId);
+    const selectedLeaveType = leaveTypes?.find(lt => lt.id === formData.leaveTypeId);
     if (!selectedLeaveType) {
       toast({
         title: "Invalid leave type",
@@ -252,7 +274,7 @@ export default function LeaveManagementPage() {
     }
 
     // Check if the duration is within the allowed days
-    const duration = calculateLeaveDuration(data.startDate, data.endDate);
+    const duration = calculateLeaveDuration(formData.startDate, formData.endDate);
     if (duration > selectedLeaveType.allowedDays) {
       toast({
         title: "Exceeds allowed days",
@@ -262,7 +284,10 @@ export default function LeaveManagementPage() {
       return;
     }
 
-    applyLeaveMutation.mutate(data);
+    // Log the data being sent
+    console.log("Submitting leave request with data:", formData);
+
+    applyLeaveMutation.mutate(formData);
   };
 
   const handleApprove = (id: number) => {
