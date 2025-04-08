@@ -1297,6 +1297,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/leaves/:id", isAuthenticated, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const leave = await storage.getLeave(id);
+      
+      if (!leave) {
+        return res.status(404).json({ message: "Leave request not found" });
+      }
+      
+      // Enhance leave data with employee and leave type information
+      const employee = await storage.getEmployee(leave.employeeId);
+      const leaveType = await storage.getLeaveType(leave.leaveTypeId);
+      
+      const enhancedLeave = {
+        ...leave,
+        employeeName: employee ? `${employee.firstName} ${employee.lastName}` : "Unknown",
+        employeeAvatar: employee?.avatar || "",
+        department: employee ? (await storage.getDepartment(employee.departmentId))?.name : "Unknown",
+        leaveTypeName: leaveType?.name || "Unknown",
+        leaveTypeIsPaid: leaveType?.isPaid || false
+      };
+      
+      res.json(enhancedLeave);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch leave details" });
+    }
+  });
+
   app.delete("/api/leaves/:id", isHR, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
