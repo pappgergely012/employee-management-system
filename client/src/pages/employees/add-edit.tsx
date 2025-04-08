@@ -5,7 +5,7 @@ import Layout from "@/components/layout/layout";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,10 +14,13 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Loader2, ArrowLeft, Save } from "lucide-react";
-import { insertEmployeeSchema, Employee } from "@shared/schema";
+import { insertEmployeeSchema, Employee, Leave } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { toast } from "@/hooks/use-toast";
-import { formatDate, generateEmployeeId } from "@/lib/utils";
+import { generateEmployeeId, cn } from "@/lib/utils";
+import { format, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isToday } from "date-fns";
+import { Calendar } from "@/components/ui/calendar";
+import { Badge } from "@/components/ui/badge";
 
 const formSchema = z.object({
   employeeId: z.string().min(3, "Employee ID is required"),
@@ -44,11 +47,24 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
+// Define interface for leave type details
+interface LeaveTypeDetail {
+  id: number;
+  name: string;
+}
+
+// Extend the Leave type to include leaveType details
+interface LeaveWithType extends Leave {
+  leaveType?: LeaveTypeDetail;
+}
+
 export default function AddEditEmployee() {
   const [, setLocation] = useLocation();
   const params = useParams();
   const isEditMode = Boolean(params.id);
   const [activeTab, setActiveTab] = useState("personal");
+  const [calendarView, setCalendarView] = useState<"week" | "month" | "year">("month");
+  const [calendarDate, setCalendarDate] = useState<Date>(new Date());
 
   // Get employee data if in edit mode
   const { data: employee, isLoading: isLoadingEmployee } = useQuery<Employee>({
@@ -85,11 +101,24 @@ export default function AddEditEmployee() {
   const { data: locations = [] } = useQuery({
     queryKey: ['/api/locations'],
   });
+  
+  // Get employee leaves if in edit mode
+  const { data: employeeLeaves = [], isLoading: isLoadingLeaves } = useQuery<LeaveWithType[]>({
+    queryKey: ['/api/leaves/employee', Number(params.id)],
+    queryFn: async () => {
+      const response = await fetch(`/api/leaves/employee/${params.id}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch employee leaves');
+      }
+      return response.json();
+    },
+    enabled: isEditMode,
+  });
 
   // Filter designations based on selected department
   const [selectedDepartmentId, setSelectedDepartmentId] = useState<number | null>(null);
   const filteredDesignations = designations.filter(
-    (designation) => designation.departmentId === selectedDepartmentId
+    (designation: any) => designation.departmentId === selectedDepartmentId
   );
 
   const form = useForm<FormValues>({
@@ -176,8 +205,8 @@ export default function AddEditEmployee() {
 
   // Generate employee ID for new employees
   useEffect(() => {
-    if (!isEditMode && departments && departments.length > 0) {
-      const selectedDept = departments.find((dept) => dept.id === selectedDepartmentId);
+    if (!isEditMode && departments && Array.isArray(departments) && departments.length > 0) {
+      const selectedDept = departments.find((dept: any) => dept.id === selectedDepartmentId);
       if (selectedDept) {
         const deptPrefix = selectedDept.name.substring(0, 3).toUpperCase();
         const newEmployeeId = generateEmployeeId(deptPrefix, departments.length + 1);
@@ -247,9 +276,9 @@ export default function AddEditEmployee() {
     // Ensure dates are properly formatted
     const formattedData = {
       ...data,
-      // Ensure date values are properly formatted or set to null/empty if invalid
+      // Ensure date values are properly formatted or set to undefined if invalid
       dateOfJoining: data.dateOfJoining || new Date().toISOString().split('T')[0],
-      dateOfBirth: data.dateOfBirth || null
+      dateOfBirth: data.dateOfBirth || undefined
     };
     
     if (isEditMode) {
@@ -301,426 +330,732 @@ export default function AddEditEmployee() {
         </Button>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="mb-6">
-          <TabsTrigger value="personal">Personal Info</TabsTrigger>
-          <TabsTrigger value="employment">Employment Details</TabsTrigger>
-          <TabsTrigger value="address">Address & Contact</TabsTrigger>
-        </TabsList>
+      <div>
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="mb-6">
+            <TabsTrigger value="personal">Personal Info</TabsTrigger>
+            <TabsTrigger value="employment">Employment Details</TabsTrigger>
+            <TabsTrigger value="address">Address & Contact</TabsTrigger>
+            {isEditMode && <TabsTrigger value="leaves">Leaves</TabsTrigger>}
+          </TabsList>
 
-        <Form {...form}>
-          <form id="employee-form" onSubmit={form.handleSubmit(onSubmit)}>
-            <TabsContent value="personal">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Personal Information</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <FormField
-                      control={form.control}
-                      name="firstName"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>First Name*</FormLabel>
-                          <FormControl>
-                            <Input placeholder="First Name" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+          <div>
+            <Form {...form}>
+              <form id="employee-form" onSubmit={form.handleSubmit(onSubmit)}>
+                <TabsContent value="personal">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Personal Information</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <FormField
+                          control={form.control}
+                          name="firstName"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>First Name*</FormLabel>
+                              <FormControl>
+                                <Input placeholder="First Name" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
 
-                    <FormField
-                      control={form.control}
-                      name="lastName"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Last Name*</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Last Name" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                        <FormField
+                          control={form.control}
+                          name="lastName"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Last Name*</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Last Name" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
 
-                    <FormField
-                      control={form.control}
-                      name="dateOfBirth"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Date of Birth</FormLabel>
-                          <FormControl>
-                            <Input type="date" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                        <FormField
+                          control={form.control}
+                          name="dateOfBirth"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Date of Birth</FormLabel>
+                              <FormControl>
+                                <Input type="date" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
 
-                    <FormField
-                      control={form.control}
-                      name="gender"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Gender</FormLabel>
-                          <Select
-                            onValueChange={field.onChange}
-                            defaultValue={field.value || ""}
-                            value={field.value || ""}
+                        <FormField
+                          control={form.control}
+                          name="gender"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Gender</FormLabel>
+                              <Select
+                                onValueChange={field.onChange}
+                                defaultValue={field.value || ""}
+                                value={field.value || ""}
+                              >
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select Gender" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="Male">Male</SelectItem>
+                                  <SelectItem value="Female">Female</SelectItem>
+                                  <SelectItem value="Other">Other</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="avatar"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Avatar URL</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Avatar URL" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                <TabsContent value="employment">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Employment Details</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <FormField
+                          control={form.control}
+                          name="employeeId"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Employee ID*</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Employee ID" {...field} readOnly={isEditMode} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="email"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Email*</FormLabel>
+                              <FormControl>
+                                <Input type="email" placeholder="Email" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="departmentId"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Department*</FormLabel>
+                              <Select
+                                onValueChange={(value) => handleDepartmentChange(value)}
+                                defaultValue={field.value ? field.value.toString() : ""}
+                                value={field.value ? field.value.toString() : ""}
+                              >
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select Department" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {Array.isArray(departments) && departments.map((department: any) => (
+                                    <SelectItem key={department.id} value={department.id.toString()}>
+                                      {department.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="designationId"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Designation*</FormLabel>
+                              <Select
+                                onValueChange={field.onChange}
+                                defaultValue={field.value ? field.value.toString() : ""}
+                                value={field.value ? field.value.toString() : ""}
+                                disabled={!selectedDepartmentId}
+                              >
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select Designation" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {filteredDesignations.map((designation: any) => (
+                                    <SelectItem key={designation.id} value={designation.id.toString()}>
+                                      {designation.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="employeeTypeId"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Employee Type*</FormLabel>
+                              <Select
+                                onValueChange={field.onChange}
+                                defaultValue={field.value ? field.value.toString() : ""}
+                                value={field.value ? field.value.toString() : ""}
+                              >
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select Employee Type" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {Array.isArray(employeeTypes) && employeeTypes.map((type: any) => (
+                                    <SelectItem key={type.id} value={type.id.toString()}>
+                                      {type.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="shiftId"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Shift*</FormLabel>
+                              <Select
+                                onValueChange={field.onChange}
+                                defaultValue={field.value ? field.value.toString() : ""}
+                                value={field.value ? field.value.toString() : ""}
+                              >
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select Shift" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {Array.isArray(shifts) && shifts.map((shift: any) => (
+                                    <SelectItem key={shift.id} value={shift.id.toString()}>
+                                      {shift.name} ({shift.startTime} - {shift.endTime})
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="locationId"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Location*</FormLabel>
+                              <Select
+                                onValueChange={field.onChange}
+                                defaultValue={field.value ? field.value.toString() : ""}
+                                value={field.value ? field.value.toString() : ""}
+                              >
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select Location" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  {Array.isArray(locations) && locations.map((location: any) => (
+                                    <SelectItem key={location.id} value={location.id.toString()}>
+                                      {location.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="dateOfJoining"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Date of Joining*</FormLabel>
+                              <FormControl>
+                                <Input type="date" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="isActive"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                              <FormControl>
+                                <Switch
+                                  checked={field.value}
+                                  onCheckedChange={field.onChange}
+                                />
+                              </FormControl>
+                              <div className="space-y-1 leading-none">
+                                <FormLabel>Active</FormLabel>
+                                <p className="text-sm text-muted-foreground">
+                                  Is this employee currently active?
+                                </p>
+                              </div>
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                <TabsContent value="address">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Address & Contact Information</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <FormField
+                          control={form.control}
+                          name="phone"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Phone Number</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Phone Number" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="address"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Address</FormLabel>
+                              <FormControl>
+                                <Textarea placeholder="Address" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="city"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>City</FormLabel>
+                              <FormControl>
+                                <Input placeholder="City" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="state"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>State</FormLabel>
+                              <FormControl>
+                                <Input placeholder="State" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="country"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Country</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Country" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="zipCode"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Zip Code</FormLabel>
+                              <FormControl>
+                                <Input placeholder="Zip Code" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              </form>
+            </Form>
+
+            {isEditMode && (
+              <TabsContent value="leaves">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Leave History</CardTitle>
+                    <CardDescription>
+                      View and manage employee leave records
+                    </CardDescription>
+                    <div className="flex space-x-4 mt-4">
+                      <Button 
+                        variant={calendarView === "week" ? "default" : "outline"} 
+                        onClick={() => setCalendarView("week")}
+                        size="sm"
+                      >
+                        Week
+                      </Button>
+                      <Button 
+                        variant={calendarView === "month" ? "default" : "outline"} 
+                        onClick={() => setCalendarView("month")}
+                        size="sm"
+                      >
+                        Month
+                      </Button>
+                      <Button 
+                        variant={calendarView === "year" ? "default" : "outline"} 
+                        onClick={() => setCalendarView("year")}
+                        size="sm"
+                      >
+                        Year
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    {isLoadingLeaves ? (
+                      <div className="flex justify-center py-8">
+                        <Loader2 className="h-8 w-8 animate-spin" />
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex justify-between items-center mb-4">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              let newDate;
+                              if (calendarView === "week") {
+                                newDate = new Date(calendarDate);
+                                newDate.setDate(newDate.getDate() - 7);
+                              } else if (calendarView === "month") {
+                                newDate = new Date(calendarDate);
+                                newDate.setMonth(newDate.getMonth() - 1);
+                              } else {
+                                newDate = new Date(calendarDate);
+                                newDate.setFullYear(newDate.getFullYear() - 1);
+                              }
+                              setCalendarDate(newDate);
+                            }}
                           >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select Gender" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="Male">Male</SelectItem>
-                              <SelectItem value="Female">Female</SelectItem>
-                              <SelectItem value="Other">Other</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="avatar"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Avatar URL</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Avatar URL" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="employment">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Employment Details</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <FormField
-                      control={form.control}
-                      name="employeeId"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Employee ID*</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Employee ID" {...field} readOnly={isEditMode} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Email*</FormLabel>
-                          <FormControl>
-                            <Input type="email" placeholder="Email" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="departmentId"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Department*</FormLabel>
-                          <Select
-                            onValueChange={(value) => handleDepartmentChange(value)}
-                            defaultValue={field.value ? field.value.toString() : ""}
-                            value={field.value ? field.value.toString() : ""}
+                            Previous {calendarView}
+                          </Button>
+                          <h3 className="text-lg font-semibold">
+                            {calendarView === "week" && (
+                              <>
+                                {format(startOfWeek(calendarDate), "MMM d")} - {format(endOfWeek(calendarDate), "MMM d, yyyy")}
+                              </>
+                            )}
+                            {calendarView === "month" && (
+                              <>{format(calendarDate, "MMMM yyyy")}</>
+                            )}
+                            {calendarView === "year" && (
+                              <>{format(calendarDate, "yyyy")}</>
+                            )}
+                          </h3>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              let newDate;
+                              if (calendarView === "week") {
+                                newDate = new Date(calendarDate);
+                                newDate.setDate(newDate.getDate() + 7);
+                              } else if (calendarView === "month") {
+                                newDate = new Date(calendarDate);
+                                newDate.setMonth(newDate.getMonth() + 1);
+                              } else {
+                                newDate = new Date(calendarDate);
+                                newDate.setFullYear(newDate.getFullYear() + 1);
+                              }
+                              setCalendarDate(newDate);
+                            }}
                           >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select Department" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {departments.map((department) => (
-                                <SelectItem key={department.id} value={department.id.toString()}>
-                                  {department.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                            Next {calendarView}
+                          </Button>
+                        </div>
 
-                    <FormField
-                      control={form.control}
-                      name="designationId"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Designation*</FormLabel>
-                          <Select
-                            onValueChange={field.onChange}
-                            defaultValue={field.value ? field.value.toString() : ""}
-                            value={field.value ? field.value.toString() : ""}
-                            disabled={!selectedDepartmentId}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select Designation" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {filteredDesignations.map((designation) => (
-                                <SelectItem key={designation.id} value={designation.id.toString()}>
-                                  {designation.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                        <div className="mt-4">
+                          {calendarView === "week" && (
+                            <div className="grid grid-cols-7 gap-1">
+                              {eachDayOfInterval({
+                                start: startOfWeek(calendarDate),
+                                end: endOfWeek(calendarDate),
+                              }).map((day) => {
+                                // Find leaves for this day
+                                const dayLeaves = employeeLeaves.filter((leave) => {
+                                  const startDate = new Date(leave.startDate);
+                                  const endDate = new Date(leave.endDate);
+                                  return day >= startDate && day <= endDate;
+                                });
 
-                    <FormField
-                      control={form.control}
-                      name="employeeTypeId"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Employee Type*</FormLabel>
-                          <Select
-                            onValueChange={field.onChange}
-                            defaultValue={field.value ? field.value.toString() : ""}
-                            value={field.value ? field.value.toString() : ""}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select Employee Type" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {employeeTypes.map((type) => (
-                                <SelectItem key={type.id} value={type.id.toString()}>
-                                  {type.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                                return (
+                                  <div
+                                    key={day.toISOString()}
+                                    className={cn(
+                                      "min-h-[100px] p-2 border rounded-md",
+                                      isToday(day) && "bg-accent",
+                                      dayLeaves.length > 0 && "border-primary"
+                                    )}
+                                  >
+                                    <div className="text-center mb-1 font-medium">
+                                      {format(day, "EEE")}
+                                    </div>
+                                    <div className="text-center mb-2">
+                                      {format(day, "d")}
+                                    </div>
+                                    {dayLeaves.map((leave) => (
+                                      <div key={leave.id} className="mb-1">
+                                        <Badge
+                                          className="w-full justify-center text-xs"
+                                          variant={
+                                            leave.status === "Approved"
+                                              ? "default"
+                                              : leave.status === "Rejected"
+                                              ? "destructive"
+                                              : "outline"
+                                          }
+                                        >
+                                          {leave.leaveType?.name || "Leave"}
+                                        </Badge>
+                                      </div>
+                                    ))}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
 
-                    <FormField
-                      control={form.control}
-                      name="shiftId"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Shift*</FormLabel>
-                          <Select
-                            onValueChange={field.onChange}
-                            defaultValue={field.value ? field.value.toString() : ""}
-                            value={field.value ? field.value.toString() : ""}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select Shift" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {shifts.map((shift) => (
-                                <SelectItem key={shift.id} value={shift.id.toString()}>
-                                  {shift.name} ({shift.startTime} - {shift.endTime})
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                          {calendarView === "month" && (
+                            <Calendar
+                              mode="multiple"
+                              selected={employeeLeaves.flatMap((leave) => {
+                                const startDate = new Date(leave.startDate);
+                                const endDate = new Date(leave.endDate);
+                                if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+                                  return [];
+                                }
 
-                    <FormField
-                      control={form.control}
-                      name="locationId"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Location*</FormLabel>
-                          <Select
-                            onValueChange={field.onChange}
-                            defaultValue={field.value ? field.value.toString() : ""}
-                            value={field.value ? field.value.toString() : ""}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select Location" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {locations.map((location) => (
-                                <SelectItem key={location.id} value={location.id.toString()}>
-                                  {location.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                                // Get all dates between start and end
+                                return eachDayOfInterval({
+                                  start: startDate,
+                                  end: endDate,
+                                });
+                              })}
+                              month={calendarDate}
+                              onMonthChange={setCalendarDate}
+                              className="rounded-md border p-3"
+                              components={{
+                                DayContent: (props) => {
+                                  const date = props.date;
+                                  const dayLeaves = employeeLeaves.filter((leave) => {
+                                    const startDate = new Date(leave.startDate);
+                                    const endDate = new Date(leave.endDate);
+                                    return date >= startDate && date <= endDate;
+                                  });
 
-                    <FormField
-                      control={form.control}
-                      name="dateOfJoining"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Date of Joining*</FormLabel>
-                          <FormControl>
-                            <Input type="date" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                                  const showDayOfMonth = isSameMonth(date, calendarDate);
 
-                    <FormField
-                      control={form.control}
-                      name="isActive"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                          <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
+                                  return (
+                                    <div className="relative h-9 w-9 p-0 font-normal aria-selected:opacity-100">
+                                      <div
+                                        className={cn(
+                                          "flex h-full w-full items-center justify-center rounded-md",
+                                          dayLeaves.length > 0 && showDayOfMonth && 
+                                            "bg-primary/10 text-primary font-medium"
+                                        )}
+                                      >
+                                        {showDayOfMonth ? date.getDate() : null}
+                                      </div>
+                                      {dayLeaves.length > 0 && showDayOfMonth && (
+                                        <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2">
+                                          <div className="h-1 w-1 rounded-full bg-primary"></div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                },
+                              }}
                             />
-                          </FormControl>
-                          <div className="space-y-1 leading-none">
-                            <FormLabel>Active</FormLabel>
-                            <p className="text-sm text-muted-foreground">
-                              Is this employee currently active?
-                            </p>
+                          )}
+
+                          {calendarView === "year" && (
+                            <div className="grid grid-cols-3 md:grid-cols-4 gap-4">
+                              {Array.from({ length: 12 }).map((_, index) => {
+                                const month = new Date(calendarDate.getFullYear(), index, 1);
+                                const monthName = format(month, "MMM");
+                                
+                                // Count leaves in this month
+                                const monthLeaves = employeeLeaves.filter((leave) => {
+                                  const startDate = new Date(leave.startDate);
+                                  const endDate = new Date(leave.endDate);
+                                  
+                                  // Check if leave period overlaps with this month
+                                  return (
+                                    (startDate.getMonth() === index && startDate.getFullYear() === calendarDate.getFullYear()) || 
+                                    (endDate.getMonth() === index && endDate.getFullYear() === calendarDate.getFullYear()) ||
+                                    (startDate.getMonth() <= index && endDate.getMonth() >= index && 
+                                     startDate.getFullYear() <= calendarDate.getFullYear() && 
+                                     endDate.getFullYear() >= calendarDate.getFullYear())
+                                  );
+                                });
+                                
+                                return (
+                                  <div 
+                                    key={index}
+                                    className={cn(
+                                      "p-3 border rounded-md text-center cursor-pointer hover:bg-accent",
+                                      monthLeaves.length > 0 && "border-primary",
+                                      new Date().getMonth() === index && 
+                                      new Date().getFullYear() === calendarDate.getFullYear() && 
+                                      "bg-accent"
+                                    )}
+                                    onClick={() => {
+                                      const newDate = new Date(calendarDate);
+                                      newDate.setMonth(index);
+                                      setCalendarDate(newDate);
+                                      setCalendarView("month");
+                                    }}
+                                  >
+                                    <div className="font-medium">{monthName}</div>
+                                    {monthLeaves.length > 0 && (
+                                      <Badge className="mt-2">
+                                        {monthLeaves.length} {monthLeaves.length === 1 ? "leave" : "leaves"}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+
+                        {employeeLeaves.length > 0 && (
+                          <div className="mt-6">
+                            <h3 className="text-lg font-semibold mb-3">Recent Leave Requests</h3>
+                            <div className="space-y-3">
+                              {employeeLeaves.slice(0, 5).map((leave) => (
+                                <div 
+                                  key={leave.id} 
+                                  className="p-3 border rounded-md"
+                                >
+                                  <div className="flex justify-between">
+                                    <div>
+                                      <span className="font-medium">{leave.leaveType?.name || "Leave"}</span>
+                                      <div className="text-sm text-muted-foreground mt-1">
+                                        {format(new Date(leave.startDate), "PP")} - {format(new Date(leave.endDate), "PP")}
+                                      </div>
+                                      {leave.reason && (
+                                        <div className="mt-1 text-sm">
+                                          {leave.reason}
+                                        </div>
+                                      )}
+                                    </div>
+                                    <Badge
+                                      variant={
+                                        leave.status === "Approved"
+                                          ? "default"
+                                          : leave.status === "Rejected"
+                                          ? "destructive"
+                                          : "outline"
+                                      }
+                                    >
+                                      {leave.status}
+                                    </Badge>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
                           </div>
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
+                        )}
 
-            <TabsContent value="address">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Address & Contact Information</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <FormField
-                      control={form.control}
-                      name="phone"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Phone Number</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Phone Number" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="address"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Address</FormLabel>
-                          <FormControl>
-                            <Textarea placeholder="Address" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="city"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>City</FormLabel>
-                          <FormControl>
-                            <Input placeholder="City" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="state"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>State/Province</FormLabel>
-                          <FormControl>
-                            <Input placeholder="State/Province" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="country"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Country</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Country" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="zipCode"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>ZIP/Postal Code</FormLabel>
-                          <FormControl>
-                            <Input placeholder="ZIP/Postal Code" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </form>
-        </Form>
-      </Tabs>
+                        {employeeLeaves.length === 0 && (
+                          <div className="py-8 text-center text-muted-foreground">
+                            No leave records found for this employee
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            )}
+          </div>
+        </Tabs>
+      </div>
     </Layout>
   );
 }

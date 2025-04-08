@@ -1159,7 +1159,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return {
           ...leave,
           leaveTypeName: leaveType?.name || "Unknown",
-          leaveTypeIsPaid: leaveType?.isPaid || false
+          leaveTypeIsPaid: leaveType?.isPaid || false,
+          leaveType: leaveType ? { id: leaveType.id, name: leaveType.name } : undefined
         };
       }));
 
