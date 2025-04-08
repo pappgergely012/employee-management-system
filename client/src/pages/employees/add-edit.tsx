@@ -57,31 +57,31 @@ export default function AddEditEmployee() {
   });
 
   // Get master data
-  const { data: departments } = useQuery({
+  const { data: departments = [] } = useQuery({
     queryKey: ['/api/departments'],
   });
 
-  const { data: designations } = useQuery({
+  const { data: designations = [] } = useQuery({
     queryKey: ['/api/designations'],
   });
 
-  const { data: employeeTypes } = useQuery({
+  const { data: employeeTypes = [] } = useQuery({
     queryKey: ['/api/employee-types'],
   });
 
-  const { data: shifts } = useQuery({
+  const { data: shifts = [] } = useQuery({
     queryKey: ['/api/shifts'],
   });
 
-  const { data: locations } = useQuery({
+  const { data: locations = [] } = useQuery({
     queryKey: ['/api/locations'],
   });
 
   // Filter designations based on selected department
   const [selectedDepartmentId, setSelectedDepartmentId] = useState<number | null>(null);
-  const filteredDesignations = designations?.filter(
+  const filteredDesignations = designations.filter(
     (designation) => designation.departmentId === selectedDepartmentId
-  ) || [];
+  );
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -339,8 +339,8 @@ export default function AddEditEmployee() {
                           <FormLabel>Gender</FormLabel>
                           <Select
                             onValueChange={field.onChange}
-                            defaultValue={field.value}
-                            value={field.value}
+                            defaultValue={field.value || ""}
+                            value={field.value || ""}
                           >
                             <FormControl>
                               <SelectTrigger>
@@ -419,8 +419,8 @@ export default function AddEditEmployee() {
                           <FormLabel>Department*</FormLabel>
                           <Select
                             onValueChange={(value) => handleDepartmentChange(value)}
-                            defaultValue={field.value.toString()}
-                            value={field.value.toString()}
+                            defaultValue={field.value ? field.value.toString() : ""}
+                            value={field.value ? field.value.toString() : ""}
                           >
                             <FormControl>
                               <SelectTrigger>
@@ -428,7 +428,7 @@ export default function AddEditEmployee() {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {departments?.map((department) => (
+                              {departments.map((department) => (
                                 <SelectItem key={department.id} value={department.id.toString()}>
                                   {department.name}
                                 </SelectItem>
@@ -448,8 +448,8 @@ export default function AddEditEmployee() {
                           <FormLabel>Designation*</FormLabel>
                           <Select
                             onValueChange={field.onChange}
-                            defaultValue={field.value.toString()}
-                            value={field.value.toString()}
+                            defaultValue={field.value ? field.value.toString() : ""}
+                            value={field.value ? field.value.toString() : ""}
                             disabled={!selectedDepartmentId}
                           >
                             <FormControl>
@@ -478,8 +478,8 @@ export default function AddEditEmployee() {
                           <FormLabel>Employee Type*</FormLabel>
                           <Select
                             onValueChange={field.onChange}
-                            defaultValue={field.value.toString()}
-                            value={field.value.toString()}
+                            defaultValue={field.value ? field.value.toString() : ""}
+                            value={field.value ? field.value.toString() : ""}
                           >
                             <FormControl>
                               <SelectTrigger>
@@ -487,7 +487,7 @@ export default function AddEditEmployee() {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {employeeTypes?.map((type) => (
+                              {employeeTypes.map((type) => (
                                 <SelectItem key={type.id} value={type.id.toString()}>
                                   {type.name}
                                 </SelectItem>
@@ -507,8 +507,8 @@ export default function AddEditEmployee() {
                           <FormLabel>Shift*</FormLabel>
                           <Select
                             onValueChange={field.onChange}
-                            defaultValue={field.value.toString()}
-                            value={field.value.toString()}
+                            defaultValue={field.value ? field.value.toString() : ""}
+                            value={field.value ? field.value.toString() : ""}
                           >
                             <FormControl>
                               <SelectTrigger>
@@ -516,7 +516,7 @@ export default function AddEditEmployee() {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {shifts?.map((shift) => (
+                              {shifts.map((shift) => (
                                 <SelectItem key={shift.id} value={shift.id.toString()}>
                                   {shift.name} ({shift.startTime} - {shift.endTime})
                                 </SelectItem>
@@ -536,8 +536,8 @@ export default function AddEditEmployee() {
                           <FormLabel>Location*</FormLabel>
                           <Select
                             onValueChange={field.onChange}
-                            defaultValue={field.value.toString()}
-                            value={field.value.toString()}
+                            defaultValue={field.value ? field.value.toString() : ""}
+                            value={field.value ? field.value.toString() : ""}
                           >
                             <FormControl>
                               <SelectTrigger>
@@ -545,7 +545,7 @@ export default function AddEditEmployee() {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {locations?.map((location) => (
+                              {locations.map((location) => (
                                 <SelectItem key={location.id} value={location.id.toString()}>
                                   {location.name}
                                 </SelectItem>
