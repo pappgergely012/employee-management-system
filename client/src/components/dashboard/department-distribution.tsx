@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertTriangle } from "lucide-react";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 
 type DepartmentDistribution = {
   departmentId: number;
@@ -10,39 +11,53 @@ type DepartmentDistribution = {
   percentage: number;
 };
 
+const COLORS = ["#3B82F6", "#10B981", "#F59E0B", "#6366F1", "#94a3b8", "#EC4899", "#8B5CF6"];
+
+const CustomTooltip = ({ active, payload }: any) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    return (
+      <div 
+        className="px-3 py-2 rounded-md shadow-sm"
+        style={{ 
+          color: payload[0].color,
+          backgroundColor: 'rgba(255, 255, 255, 0.9)',
+          border: `1px solid ${payload[0].color}`,
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          zIndex: 1000,
+          pointerEvents: 'none'
+        }}
+      >
+        <p className="font-medium">{data.name}</p>
+        <p className="text-sm">{data.value} employees ({data.percentage}%)</p>
+      </div>
+    );
+  }
+  return null;
+};
+
 export default function DepartmentDistribution() {
   const { data, isLoading, error } = useQuery<DepartmentDistribution[]>({
     queryKey: ['/api/dashboard/department-distribution'],
   });
 
-  const calculateDonutSegments = (distributions: DepartmentDistribution[]) => {
-    let totalDegrees = 0;
-    const segments: { department: DepartmentDistribution; offset: number; length: number }[] = [];
+  console.log('Department Distribution Data:', data);
+  console.log('Is Loading:', isLoading);
+  console.log('Error:', error);
 
-    distributions.forEach((department) => {
-      const degrees = (department.percentage / 100) * 360;
-      segments.push({
-        department,
-        offset: totalDegrees,
-        length: degrees,
-      });
-      totalDegrees += degrees;
-    });
+  const totalEmployees = data?.reduce((sum, dept) => sum + Number(dept.count), 0) || 0;
 
-    return segments;
-  };
+  // Transform data for the chart
+  const chartData = data?.map(dept => ({
+    name: dept.name,
+    value: Number(dept.count),
+    percentage: dept.percentage
+  })) || [];
 
-  const getSegmentStyle = (offset: number, length: number) => {
-    return {
-      strokeDasharray: `${length} 360`,
-      strokeDashoffset: -offset,
-    };
-  };
-
-  const getDepartmentColor = (index: number) => {
-    const colors = ["#3B82F6", "#10B981", "#F59E0B", "#6366F1", "#94a3b8"];
-    return colors[index % colors.length];
-  };
+  console.log('Chart Data:', chartData);
 
   return (
     <div className="mb-8">
@@ -84,34 +99,40 @@ export default function DepartmentDistribution() {
         ) : (
           <CardContent className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Donut Chart */}
+              {/* Pie Chart */}
               <div className="flex items-center justify-center">
-                <div className="w-48 h-48 relative">
-                  <div className="w-full h-full rounded-full bg-gray-100 flex items-center justify-center">
-                    <div className="absolute inset-0 flex items-center justify-center text-center">
-                      <div>
-                        <div className="text-2xl font-bold text-gray-800">
-                          {data?.reduce((sum, dept) => sum + dept.count, 0) || 0}
-                        </div>
-                        <div className="text-xs text-gray-500">Total Employees</div>
-                      </div>
-                    </div>
-                    <svg width="192" height="192" viewBox="0 0 192 192" className="absolute top-0 left-0">
-                      <circle cx="96" cy="96" r="80" fill="none" stroke="#ddd" strokeWidth="24" />
-                      
-                      {data && calculateDonutSegments(data).map((segment, index) => (
-                        <circle 
-                          key={segment.department.departmentId}
-                          cx="96" 
-                          cy="96" 
-                          r="80" 
-                          fill="none" 
-                          stroke={getDepartmentColor(index)} 
-                          strokeWidth="24" 
-                          style={getSegmentStyle(segment.offset, segment.length)}
+                <div className="w-[250px] h-[250px] relative">
+                  {chartData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={chartData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={50}
+                          outerRadius={90}
+                          paddingAngle={2}
+                          dataKey="value"
+                          nameKey="name"
+                        >
+                          {chartData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip 
+                          content={<CustomTooltip />}
+                          position={{ x: 0, y: 0 }}
                         />
-                      ))}
-                    </svg>
+                      </PieChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="flex items-center justify-center h-full">
+                      <p className="text-gray-500">No data available</p>
+                    </div>
+                  )}
+                  <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center">
+                    <div className="text-2xl font-bold text-gray-800">{totalEmployees}</div>
+                    <div className="text-xs text-gray-500">Total Employees</div>
                   </div>
                 </div>
               </div>
@@ -124,7 +145,7 @@ export default function DepartmentDistribution() {
                       <div className="flex items-center">
                         <span 
                           className="h-4 w-4 rounded-full mr-3" 
-                          style={{ backgroundColor: getDepartmentColor(index) }}
+                          style={{ backgroundColor: COLORS[index % COLORS.length] }}
                         ></span>
                         <span className="text-sm font-medium">{department.name}</span>
                       </div>

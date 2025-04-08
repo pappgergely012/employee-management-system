@@ -2,6 +2,37 @@ import { pgTable, text, serial, integer, boolean, date, timestamp, uniqueIndex }
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// Session schema for express-session
+export const sessions = pgTable("session", {
+  sid: text("sid").primaryKey(),
+  sess: text("sess").notNull(),
+  expire: timestamp("expire").notNull(),
+});
+
+// Companies schema - must be defined first as other tables reference it
+export const companies = pgTable("companies", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  description: text("description"),
+  address: text("address"),
+  phone: text("phone"),
+  email: text("email"),
+  website: text("website"),
+  logo: text("logo"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertCompanySchema = createInsertSchema(companies).pick({
+  name: true,
+  description: true,
+  address: true,
+  phone: true,
+  email: true,
+  website: true,
+  logo: true,
+});
+
 // Users schema for authentication
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -10,6 +41,7 @@ export const users = pgTable("users", {
   fullName: text("full_name").notNull(),
   email: text("email").notNull(),
   role: text("role").notNull().default("user"), // admin, hr, manager, user
+  companyId: integer("company_id").references(() => companies.id),
   avatar: text("avatar"),
   createdAt: timestamp("created_at").defaultNow(),
 });
@@ -20,19 +52,22 @@ export const insertUserSchema = createInsertSchema(users).pick({
   fullName: true,
   email: true,
   role: true,
+  companyId: true,
   avatar: true,
 });
 
 // Department schema
 export const departments = pgTable("departments", {
   id: serial("id").primaryKey(),
-  name: text("name").notNull().unique(),
+  name: text("name").notNull(),
+  companyId: integer("company_id").references(() => companies.id),
   description: text("description"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
 export const insertDepartmentSchema = createInsertSchema(departments).pick({
   name: true,
+  companyId: true,
   description: true,
 });
 
@@ -41,6 +76,7 @@ export const designations = pgTable("designations", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   departmentId: integer("department_id").notNull(),
+  companyId: integer("company_id").references(() => companies.id),
   description: text("description"),
   createdAt: timestamp("created_at").defaultNow(),
 });
@@ -48,26 +84,30 @@ export const designations = pgTable("designations", {
 export const insertDesignationSchema = createInsertSchema(designations).pick({
   name: true,
   departmentId: true,
+  companyId: true,
   description: true,
 });
 
 // Employee Type schema
 export const employeeTypes = pgTable("employee_types", {
   id: serial("id").primaryKey(),
-  name: text("name").notNull().unique(),
+  name: text("name").notNull(),
+  companyId: integer("company_id").references(() => companies.id),
   description: text("description"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
 export const insertEmployeeTypeSchema = createInsertSchema(employeeTypes).pick({
   name: true,
+  companyId: true,
   description: true,
 });
 
 // Shift schema
 export const shifts = pgTable("shifts", {
   id: serial("id").primaryKey(),
-  name: text("name").notNull().unique(),
+  name: text("name").notNull(),
+  companyId: integer("company_id").references(() => companies.id),
   startTime: text("start_time").notNull(),
   endTime: text("end_time").notNull(),
   description: text("description"),
@@ -76,6 +116,7 @@ export const shifts = pgTable("shifts", {
 
 export const insertShiftSchema = createInsertSchema(shifts).pick({
   name: true,
+  companyId: true,
   startTime: true,
   endTime: true,
   description: true,
@@ -84,7 +125,8 @@ export const insertShiftSchema = createInsertSchema(shifts).pick({
 // Leave Type schema
 export const leaveTypes = pgTable("leave_types", {
   id: serial("id").primaryKey(),
-  name: text("name").notNull().unique(),
+  name: text("name").notNull(),
+  companyId: integer("company_id").references(() => companies.id),
   description: text("description"),
   allowedDays: integer("allowed_days").notNull(),
   isPaid: boolean("is_paid").notNull().default(true),
@@ -93,6 +135,7 @@ export const leaveTypes = pgTable("leave_types", {
 
 export const insertLeaveTypeSchema = createInsertSchema(leaveTypes).pick({
   name: true,
+  companyId: true,
   description: true,
   allowedDays: true,
   isPaid: true,
@@ -101,7 +144,8 @@ export const insertLeaveTypeSchema = createInsertSchema(leaveTypes).pick({
 // Location/Branch schema
 export const locations = pgTable("locations", {
   id: serial("id").primaryKey(),
-  name: text("name").notNull().unique(),
+  name: text("name").notNull(),
+  companyId: integer("company_id").references(() => companies.id),
   address: text("address"),
   city: text("city"),
   state: text("state"),
@@ -112,6 +156,7 @@ export const locations = pgTable("locations", {
 
 export const insertLocationSchema = createInsertSchema(locations).pick({
   name: true,
+  companyId: true,
   address: true,
   city: true,
   state: true,
@@ -122,10 +167,11 @@ export const insertLocationSchema = createInsertSchema(locations).pick({
 // Employee schema
 export const employees = pgTable("employees", {
   id: serial("id").primaryKey(),
-  employeeId: text("employee_id").notNull().unique(),
+  employeeId: text("employee_id").notNull(),
+  companyId: integer("company_id").references(() => companies.id),
   firstName: text("first_name").notNull(),
   lastName: text("last_name").notNull(),
-  email: text("email").notNull().unique(),
+  email: text("email").notNull(),
   phone: text("phone"),
   departmentId: integer("department_id").notNull(),
   designationId: integer("designation_id").notNull(),
@@ -147,6 +193,7 @@ export const employees = pgTable("employees", {
 
 export const insertEmployeeSchema = createInsertSchema(employees).pick({
   employeeId: true,
+  companyId: true,
   firstName: true,
   lastName: true,
   email: true,
@@ -172,6 +219,7 @@ export const insertEmployeeSchema = createInsertSchema(employees).pick({
 export const attendance = pgTable("attendance", {
   id: serial("id").primaryKey(),
   employeeId: integer("employee_id").notNull(),
+  companyId: integer("company_id").references(() => companies.id),
   date: date("date").notNull(),
   status: text("status").notNull(), // present, absent, late, half_day
   checkIn: timestamp("check_in"),
@@ -182,6 +230,7 @@ export const attendance = pgTable("attendance", {
 
 export const insertAttendanceSchema = createInsertSchema(attendance).pick({
   employeeId: true,
+  companyId: true,
   date: true,
   status: true,
   checkIn: true,
@@ -193,6 +242,7 @@ export const insertAttendanceSchema = createInsertSchema(attendance).pick({
 export const leaves = pgTable("leaves", {
   id: serial("id").primaryKey(),
   employeeId: integer("employee_id").notNull(),
+  companyId: integer("company_id").references(() => companies.id),
   leaveTypeId: integer("leave_type_id").notNull(),
   startDate: date("start_date").notNull(),
   endDate: date("end_date").notNull(),
@@ -204,6 +254,7 @@ export const leaves = pgTable("leaves", {
 
 export const insertLeaveSchema = createInsertSchema(leaves).pick({
   employeeId: true,
+  companyId: true,
   leaveTypeId: true,
   startDate: true,
   endDate: true,
@@ -216,6 +267,7 @@ export const insertLeaveSchema = createInsertSchema(leaves).pick({
 export const salary = pgTable("salary", {
   id: serial("id").primaryKey(),
   employeeId: integer("employee_id").notNull(),
+  companyId: integer("company_id").references(() => companies.id),
   month: integer("month").notNull(),
   year: integer("year").notNull(),
   basicSalary: integer("basic_salary").notNull(),
@@ -236,6 +288,7 @@ export const salary = pgTable("salary", {
 
 export const insertSalarySchema = createInsertSchema(salary).pick({
   employeeId: true,
+  companyId: true,
   month: true,
   year: true,
   basicSalary: true,
@@ -257,6 +310,7 @@ export const insertSalarySchema = createInsertSchema(salary).pick({
 export const activityLogs = pgTable("activity_logs", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull(),
+  companyId: integer("company_id").references(() => companies.id),
   action: text("action").notNull(),
   details: text("details"),
   createdAt: timestamp("created_at").defaultNow(),
@@ -264,6 +318,7 @@ export const activityLogs = pgTable("activity_logs", {
 
 export const insertActivityLogSchema = createInsertSchema(activityLogs).pick({
   userId: true,
+  companyId: true,
   action: true,
   details: true,
 });
@@ -278,6 +333,7 @@ export const events = pgTable("events", {
   startTime: text("start_time"),
   endTime: text("end_time"),
   location: text("location"),
+  companyId: integer("company_id").references(() => companies.id),
   createdBy: integer("created_by").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
 });
@@ -290,6 +346,7 @@ export const insertEventSchema = createInsertSchema(events).pick({
   startTime: true,
   endTime: true,
   location: true,
+  companyId: true,
   createdBy: true,
 });
 
@@ -339,6 +396,7 @@ export const orgChartNodes = pgTable("org_chart_nodes", {
   name: text("name").notNull(),
   title: text("title").notNull(),
   employeeId: integer("employee_id").references(() => employees.id, { onDelete: 'set null' }),
+  companyId: integer("company_id").references(() => companies.id),
   parentId: integer("parent_id"),
   level: integer("level").notNull(),
   order: integer("order").notNull().default(0),
@@ -350,6 +408,7 @@ export const insertOrgChartNodeSchema = createInsertSchema(orgChartNodes).pick({
   name: true,
   title: true,
   employeeId: true,
+  companyId: true,
   parentId: true,
   level: true,
   order: true,

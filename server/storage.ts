@@ -39,14 +39,14 @@ export interface IStorage {
 
   // Departments
   getDepartment(id: number): Promise<Department | undefined>;
-  getDepartments(): Promise<Department[]>;
+  getDepartments(companyId?: number): Promise<Department[]>;
   createDepartment(department: InsertDepartment): Promise<Department>;
   updateDepartment(id: number, department: Partial<Department>): Promise<Department | undefined>;
   deleteDepartment(id: number): Promise<boolean>;
 
   // Designations
   getDesignation(id: number): Promise<Designation | undefined>;
-  getDesignations(): Promise<Designation[]>;
+  getDesignations(companyId?: number): Promise<Designation[]>;
   getDesignationsByDepartment(departmentId: number): Promise<Designation[]>;
   createDesignation(designation: InsertDesignation): Promise<Designation>;
   updateDesignation(id: number, designation: Partial<Designation>): Promise<Designation | undefined>;
@@ -54,108 +54,110 @@ export interface IStorage {
 
   // Employee Types
   getEmployeeType(id: number): Promise<EmployeeType | undefined>;
-  getEmployeeTypes(): Promise<EmployeeType[]>;
+  getEmployeeTypes(companyId?: number): Promise<EmployeeType[]>;
+  getEmployeesByType(employeeTypeId: number): Promise<Employee[]>;
   createEmployeeType(employeeType: InsertEmployeeType): Promise<EmployeeType>;
   updateEmployeeType(id: number, employeeType: Partial<EmployeeType>): Promise<EmployeeType | undefined>;
   deleteEmployeeType(id: number): Promise<boolean>;
 
   // Shifts
   getShift(id: number): Promise<Shift | undefined>;
-  getShifts(): Promise<Shift[]>;
+  getShifts(companyId?: number): Promise<Shift[]>;
   createShift(shift: InsertShift): Promise<Shift>;
   updateShift(id: number, shift: Partial<Shift>): Promise<Shift | undefined>;
   deleteShift(id: number): Promise<boolean>;
 
   // Leave Types
   getLeaveType(id: number): Promise<LeaveType | undefined>;
-  getLeaveTypes(): Promise<LeaveType[]>;
+  getLeaveTypes(companyId?: number): Promise<LeaveType[]>;
   createLeaveType(leaveType: InsertLeaveType): Promise<LeaveType>;
   updateLeaveType(id: number, leaveType: Partial<LeaveType>): Promise<LeaveType | undefined>;
   deleteLeaveType(id: number): Promise<boolean>;
 
   // Locations
   getLocation(id: number): Promise<Location | undefined>;
-  getLocations(): Promise<Location[]>;
+  getLocations(companyId?: number): Promise<Location[]>;
   createLocation(location: InsertLocation): Promise<Location>;
   updateLocation(id: number, location: Partial<Location>): Promise<Location | undefined>;
   deleteLocation(id: number): Promise<boolean>;
 
   // Employees
   getEmployee(id: number): Promise<Employee | undefined>;
-  getEmployees(): Promise<Employee[]>;
+  getEmployees(companyId?: number): Promise<Employee[]>;
   getEmployeesByDepartment(departmentId: number): Promise<Employee[]>;
   getEmployeesByLocation(locationId: number): Promise<Employee[]>;
+  getEmployeesByType(employeeTypeId: number): Promise<Employee[]>;
   createEmployee(employee: InsertEmployee): Promise<Employee>;
   updateEmployee(id: number, employee: Partial<Employee>): Promise<Employee | undefined>;
   deleteEmployee(id: number): Promise<boolean>;
 
   // Attendance
   getAttendance(id: number): Promise<Attendance | undefined>;
-  getAttendanceByDate(date: Date): Promise<Attendance[]>;
-  getAttendanceByEmployee(employeeId: number): Promise<Attendance[]>;
-  getAttendanceByEmployeeAndDate(employeeId: number, date: Date): Promise<Attendance | undefined>;
+  getAttendanceByDate(date: Date, companyId?: number): Promise<Attendance[]>;
+  getAttendanceByEmployee(employeeId: number, companyId?: number): Promise<Attendance[]>;
+  getAttendanceByEmployeeAndDate(employeeId: number, date: Date, companyId?: number): Promise<Attendance | undefined>;
   createAttendance(attendance: InsertAttendance): Promise<Attendance>;
   updateAttendance(id: number, attendance: Partial<Attendance>): Promise<Attendance | undefined>;
   deleteAttendance(id: number): Promise<boolean>;
 
   // Leaves
   getLeave(id: number): Promise<Leave | undefined>;
-  getLeaves(): Promise<Leave[]>;
-  getLeavesByEmployee(employeeId: number): Promise<Leave[]>;
-  getLeavesByStatus(status: string): Promise<Leave[]>;
+  getLeaves(companyId?: number): Promise<Leave[]>;
+  getLeavesByEmployee(employeeId: number, companyId?: number): Promise<Leave[]>;
+  getLeavesByStatus(status: string, companyId?: number): Promise<Leave[]>;
   createLeave(leave: InsertLeave): Promise<Leave>;
   updateLeave(id: number, leave: Partial<Leave>): Promise<Leave | undefined>;
   deleteLeave(id: number): Promise<boolean>;
 
   // Salary
   getSalary(id: number): Promise<Salary | undefined>;
-  getSalaries(): Promise<Salary[]>;
-  getSalariesByEmployee(employeeId: number): Promise<Salary[]>;
-  getSalariesByMonth(month: number, year: number): Promise<Salary[]>;
+  getSalaries(companyId?: number): Promise<Salary[]>;
+  getSalariesByEmployee(employeeId: number, companyId?: number): Promise<Salary[]>;
+  getSalariesByMonth(month: number, year: number, companyId?: number): Promise<Salary[]>;
   createSalary(salary: InsertSalary): Promise<Salary>;
   updateSalary(id: number, salary: Partial<Salary>): Promise<Salary | undefined>;
   deleteSalary(id: number): Promise<boolean>;
 
   // Activity Logs
   getActivityLog(id: number): Promise<ActivityLog | undefined>;
-  getActivityLogs(): Promise<ActivityLog[]>;
-  getActivityLogsByUser(userId: number): Promise<ActivityLog[]>;
+  getActivityLogs(companyId?: number): Promise<ActivityLog[]>;
+  getActivityLogsByUser(userId: number, companyId?: number): Promise<ActivityLog[]>;
   createActivityLog(activityLog: InsertActivityLog): Promise<ActivityLog>;
 
   // Events
   getEvent(id: number): Promise<Event | undefined>;
-  getEvents(): Promise<Event[]>;
-  getUpcomingEvents(): Promise<Event[]>;
+  getEvents(companyId?: number): Promise<Event[]>;
+  getUpcomingEvents(companyId?: number): Promise<Event[]>;
   createEvent(event: InsertEvent): Promise<Event>;
   updateEvent(id: number, event: Partial<Event>): Promise<Event | undefined>;
   deleteEvent(id: number): Promise<boolean>;
 
   // Organizational Chart
   getOrgChartNode(id: number): Promise<OrgChartNode | undefined>;
-  getOrgChartNodes(): Promise<OrgChartNode[]>;
-  getOrgChartNodesByLevel(level: number): Promise<OrgChartNode[]>;
-  getOrgChartNodesByParent(parentId: number | null): Promise<OrgChartNode[]>;
+  getOrgChartNodes(companyId?: number): Promise<OrgChartNode[]>;
+  getOrgChartNodesByLevel(level: number, companyId?: number): Promise<OrgChartNode[]>;
+  getOrgChartNodesByParent(parentId: number | null, companyId?: number): Promise<OrgChartNode[]>;
   createOrgChartNode(node: InsertOrgChartNode): Promise<OrgChartNode>;
   updateOrgChartNode(id: number, node: Partial<OrgChartNode>): Promise<OrgChartNode | undefined>;
   deleteOrgChartNode(id: number): Promise<boolean>;
   moveOrgChartNode(id: number, newParentId: number | null, newOrder: number): Promise<boolean>;
-  getFullOrgChart(): Promise<OrgChartNode[]>;
+  getFullOrgChart(companyId?: number): Promise<OrgChartNode[]>;
 
   // Dashboard
-  getDashboardStats(): Promise<{
+  getDashboardStats(companyId?: number): Promise<{
     totalEmployees: number;
     activeToday: number;
     onLeaveToday: number;
     pendingLeaveRequests: number;
   }>;
-  getDepartmentDistribution(): Promise<{ 
+  getDepartmentDistribution(companyId?: number): Promise<{ 
     departmentId: number; 
     name: string; 
     count: number; 
     percentage: number;
   }[]>;
-  getRecentEmployees(limit: number): Promise<Employee[]>;
-  getRecentActivities(limit: number): Promise<ActivityLog[]>;
+  getRecentEmployees(limit: number, companyId?: number): Promise<Employee[]>;
+  getRecentActivities(limit: number, companyId?: number): Promise<ActivityLog[]>;
 
   // Session store
   sessionStore: session.Store;
@@ -206,7 +208,10 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
-  async getDepartments(): Promise<Department[]> {
+  async getDepartments(companyId?: number): Promise<Department[]> {
+    if (companyId) {
+      return db.select().from(departments).where(eq(departments.companyId, companyId));
+    }
     return db.select().from(departments);
   }
 
@@ -234,7 +239,10 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
-  async getDesignations(): Promise<Designation[]> {
+  async getDesignations(companyId?: number): Promise<Designation[]> {
+    if (companyId) {
+      return db.select().from(designations).where(eq(designations.companyId, companyId));
+    }
     return db.select().from(designations);
   }
 
@@ -266,7 +274,10 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
-  async getEmployeeTypes(): Promise<EmployeeType[]> {
+  async getEmployeeTypes(companyId?: number): Promise<EmployeeType[]> {
+    if (companyId) {
+      return db.select().from(employeeTypes).where(eq(employeeTypes.companyId, companyId));
+    }
     return db.select().from(employeeTypes);
   }
 
@@ -294,7 +305,10 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
-  async getShifts(): Promise<Shift[]> {
+  async getShifts(companyId?: number): Promise<Shift[]> {
+    if (companyId) {
+      return db.select().from(shifts).where(eq(shifts.companyId, companyId));
+    }
     return db.select().from(shifts);
   }
 
@@ -322,7 +336,10 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
-  async getLeaveTypes(): Promise<LeaveType[]> {
+  async getLeaveTypes(companyId?: number): Promise<LeaveType[]> {
+    if (companyId) {
+      return db.select().from(leaveTypes).where(eq(leaveTypes.companyId, companyId));
+    }
     return db.select().from(leaveTypes);
   }
 
@@ -350,7 +367,10 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
-  async getLocations(): Promise<Location[]> {
+  async getLocations(companyId?: number): Promise<Location[]> {
+    if (companyId) {
+      return db.select().from(locations).where(eq(locations.companyId, companyId));
+    }
     return db.select().from(locations);
   }
 
@@ -378,7 +398,10 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
-  async getEmployees(): Promise<Employee[]> {
+  async getEmployees(companyId?: number): Promise<Employee[]> {
+    if (companyId) {
+      return db.select().from(employees).where(eq(employees.companyId, companyId));
+    }
     return db.select().from(employees);
   }
 
@@ -414,10 +437,16 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
-  async getAttendanceByDate(date: Date): Promise<Attendance[]> {
-    // Format date to compare only the date part
-    const dateString = date.toISOString().split('T')[0];
-    return db.select().from(attendance).where(sql`date(${attendance.date}) = ${dateString}`);
+  async getAttendanceByDate(date: Date, companyId?: number): Promise<Attendance[]> {
+    const dateStr = date.toISOString().split('T')[0];
+    if (companyId) {
+      return db.select().from(attendance)
+        .where(and(
+          eq(attendance.date, dateStr),
+          eq(attendance.companyId, companyId)
+        ));
+    }
+    return db.select().from(attendance).where(eq(attendance.date, dateStr));
   }
 
   async getAttendanceByEmployee(employeeId: number): Promise<Attendance[]> {
@@ -425,27 +454,18 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAttendanceByEmployeeAndDate(employeeId: number, date: Date): Promise<Attendance | undefined> {
-    // Format date to compare only the date part
-    const dateString = date.toISOString().split('T')[0];
-    const result = await db.select().from(attendance).where(
-      and(
+    const dateStr = date.toISOString().split('T')[0];
+    const result = await db.select()
+      .from(attendance)
+      .where(and(
         eq(attendance.employeeId, employeeId),
-        sql`date(${attendance.date}) = ${dateString}`
-      )
-    );
+        eq(attendance.date, dateStr)
+      ));
     return result[0];
   }
 
   async createAttendance(attendanceData: InsertAttendance): Promise<Attendance> {
-    const result = await db.insert(attendance).values({
-      ...attendanceData,
-      date: attendanceData.date,
-      status: attendanceData.status,
-      employeeId: attendanceData.employeeId,
-      checkIn: attendanceData.checkIn,
-      checkOut: attendanceData.checkOut,
-      remarks: attendanceData.remarks
-    }).returning();
+    const result = await db.insert(attendance).values(attendanceData).returning();
     return result[0];
   }
 
@@ -468,15 +488,64 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
-  async getLeaves(): Promise<Leave[]> {
-    return db.select().from(leaves);
+  async getLeaves(companyId?: number): Promise<Leave[]> {
+    if (companyId) {
+      return db.select({
+        id: leaves.id,
+        employeeId: leaves.employeeId,
+        companyId: leaves.companyId,
+        leaveTypeId: leaves.leaveTypeId,
+        startDate: leaves.startDate,
+        endDate: leaves.endDate,
+        reason: leaves.reason,
+        status: leaves.status,
+        approvedBy: leaves.approvedBy,
+        createdAt: leaves.createdAt,
+        employeeName: sql<string>`CONCAT(${employees.firstName}, ' ', ${employees.lastName})`,
+        employeeAvatar: employees.avatar,
+        department: departments.name,
+        leaveTypeName: leaveTypes.name
+      })
+      .from(leaves)
+      .leftJoin(employees, eq(leaves.employeeId, employees.id))
+      .leftJoin(departments, eq(employees.departmentId, departments.id))
+      .leftJoin(leaveTypes, eq(leaves.leaveTypeId, leaveTypes.id))
+      .where(eq(leaves.companyId, companyId));
+    }
+    return db.select({
+      id: leaves.id,
+      employeeId: leaves.employeeId,
+      companyId: leaves.companyId,
+      leaveTypeId: leaves.leaveTypeId,
+      startDate: leaves.startDate,
+      endDate: leaves.endDate,
+      reason: leaves.reason,
+      status: leaves.status,
+      approvedBy: leaves.approvedBy,
+      createdAt: leaves.createdAt,
+      employeeName: sql<string>`CONCAT(${employees.firstName}, ' ', ${employees.lastName})`,
+      employeeAvatar: employees.avatar,
+      department: departments.name,
+      leaveTypeName: leaveTypes.name
+    })
+    .from(leaves)
+    .leftJoin(employees, eq(leaves.employeeId, employees.id))
+    .leftJoin(departments, eq(employees.departmentId, departments.id))
+    .leftJoin(leaveTypes, eq(leaves.leaveTypeId, leaveTypes.id));
   }
 
   async getLeavesByEmployee(employeeId: number): Promise<Leave[]> {
     return db.select().from(leaves).where(eq(leaves.employeeId, employeeId));
   }
 
-  async getLeavesByStatus(status: string): Promise<Leave[]> {
+  async getLeavesByStatus(status: string, companyId?: number): Promise<Leave[]> {
+    if (companyId) {
+      return db.select().from(leaves)
+        .where(and(
+          eq(leaves.status, status),
+          eq(leaves.companyId, companyId)
+        ));
+    }
     return db.select().from(leaves).where(eq(leaves.status, status));
   }
 
@@ -504,7 +573,10 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
-  async getSalaries(): Promise<Salary[]> {
+  async getSalaries(companyId?: number): Promise<Salary[]> {
+    if (companyId) {
+      return db.select().from(salary).where(eq(salary.companyId, companyId));
+    }
     return db.select().from(salary);
   }
 
@@ -512,13 +584,20 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(salary).where(eq(salary.employeeId, employeeId));
   }
 
-  async getSalariesByMonth(month: number, year: number): Promise<Salary[]> {
-    return db.select().from(salary).where(
-      and(
+  async getSalariesByMonth(month: number, year: number, companyId?: number): Promise<Salary[]> {
+    if (companyId) {
+      return db.select().from(salary)
+        .where(and(
+          eq(salary.month, month),
+          eq(salary.year, year),
+          eq(salary.companyId, companyId)
+        ));
+    }
+    return db.select().from(salary)
+      .where(and(
         eq(salary.month, month),
         eq(salary.year, year)
-      )
-    );
+      ));
   }
 
   async createSalary(salaryData: InsertSalary): Promise<Salary> {
@@ -545,12 +624,15 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
-  async getActivityLogs(): Promise<ActivityLog[]> {
-    return db.select().from(activityLogs).orderBy(desc(activityLogs.createdAt));
+  async getActivityLogs(companyId?: number): Promise<ActivityLog[]> {
+    if (companyId) {
+      return db.select().from(activityLogs).where(eq(activityLogs.companyId, companyId));
+    }
+    return db.select().from(activityLogs);
   }
 
   async getActivityLogsByUser(userId: number): Promise<ActivityLog[]> {
-    return db.select().from(activityLogs).where(eq(activityLogs.userId, userId)).orderBy(desc(activityLogs.createdAt));
+    return db.select().from(activityLogs).where(eq(activityLogs.userId, userId));
   }
 
   async createActivityLog(activityLog: InsertActivityLog): Promise<ActivityLog> {
@@ -564,12 +646,24 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
-  async getEvents(): Promise<Event[]> {
+  async getEvents(companyId?: number): Promise<Event[]> {
+    if (companyId) {
+      return db.select().from(events).where(eq(events.companyId, companyId));
+    }
     return db.select().from(events);
   }
 
-  async getUpcomingEvents(): Promise<Event[]> {
+  async getUpcomingEvents(companyId?: number): Promise<Event[]> {
     const today = new Date().toISOString().split('T')[0];
+    if (companyId) {
+      return db.select()
+        .from(events)
+        .where(and(
+          sql`date(${events.startDate}) >= ${today}`,
+          eq(events.companyId, companyId)
+        ))
+        .orderBy(events.startDate);
+    }
     return db.select()
       .from(events)
       .where(sql`date(${events.startDate}) >= ${today}`)
@@ -600,15 +694,39 @@ export class DatabaseStorage implements IStorage {
     return result[0];
   }
 
-  async getOrgChartNodes(): Promise<OrgChartNode[]> {
+  async getOrgChartNodes(companyId?: number): Promise<OrgChartNode[]> {
+    if (companyId) {
+      return db.select().from(orgChartNodes).where(eq(orgChartNodes.companyId, companyId));
+    }
     return db.select().from(orgChartNodes);
   }
 
-  async getOrgChartNodesByLevel(level: number): Promise<OrgChartNode[]> {
+  async getOrgChartNodesByLevel(level: number, companyId?: number): Promise<OrgChartNode[]> {
+    if (companyId) {
+      return db.select().from(orgChartNodes)
+        .where(and(
+          eq(orgChartNodes.level, level),
+          eq(orgChartNodes.companyId, companyId)
+        ));
+    }
     return db.select().from(orgChartNodes).where(eq(orgChartNodes.level, level));
   }
 
-  async getOrgChartNodesByParent(parentId: number | null): Promise<OrgChartNode[]> {
+  async getOrgChartNodesByParent(parentId: number | null, companyId?: number): Promise<OrgChartNode[]> {
+    if (companyId) {
+      if (parentId === null) {
+        return db.select().from(orgChartNodes)
+          .where(and(
+            sql`${orgChartNodes.parentId} IS NULL`,
+            eq(orgChartNodes.companyId, companyId)
+          ));
+      }
+      return db.select().from(orgChartNodes)
+        .where(and(
+          eq(orgChartNodes.parentId, parentId),
+          eq(orgChartNodes.companyId, companyId)
+        ));
+    }
     if (parentId === null) {
       return db.select().from(orgChartNodes).where(sql`${orgChartNodes.parentId} IS NULL`);
     }
@@ -634,162 +752,125 @@ export class DatabaseStorage implements IStorage {
   }
 
   async moveOrgChartNode(id: number, newParentId: number | null, newOrder: number): Promise<boolean> {
-    // Get the node to move
-    const node = await this.getOrgChartNode(id);
-    if (!node) return false;
-    
-    // Update the node with new parent and order
     const result = await db.update(orgChartNodes)
-      .set({ 
-        parentId: newParentId, 
-        order: newOrder 
+      .set({
+        parentId: newParentId,
+        order: newOrder
       })
       .where(eq(orgChartNodes.id, id))
       .returning();
-    
-    // Re-order siblings if needed
-    if (result.length > 0) {
-      const siblings = await this.getOrgChartNodesByParent(newParentId);
-      
-      // Sort siblings by order
-      siblings.sort((a, b) => a.order - b.order);
-      
-      // Update orders to ensure they are sequential and have no gaps
-      for (let i = 0; i < siblings.length; i++) {
-        if (siblings[i].id !== id && siblings[i].order >= newOrder) {
-          await db.update(orgChartNodes)
-            .set({ order: siblings[i].order + 1 })
-            .where(eq(orgChartNodes.id, siblings[i].id));
-        }
-      }
-      
-      return true;
-    }
-    
-    return false;
+    return result.length > 0;
   }
 
-  async getFullOrgChart(): Promise<OrgChartNode[]> {
-    // Get all nodes and organize them in a hierarchy
-    const allNodes = await this.getOrgChartNodes();
-    
-    // Nodes will be returned in a flattened format but with correct hierarchy information
-    return allNodes.sort((a, b) => {
-      // First sort by level
-      if (a.level !== b.level) {
-        return a.level - b.level;
-      }
-      
-      // Then sort by parent
-      if (a.parentId !== b.parentId) {
-        return (a.parentId || 0) - (b.parentId || 0);
-      }
-      
-      // Finally sort by order
-      return a.order - b.order;
-    });
+  async getFullOrgChart(companyId?: number): Promise<OrgChartNode[]> {
+    if (companyId) {
+      return db.select().from(orgChartNodes)
+        .where(eq(orgChartNodes.companyId, companyId))
+        .orderBy(orgChartNodes.level, orgChartNodes.order);
+    }
+    return db.select().from(orgChartNodes)
+      .orderBy(orgChartNodes.level, orgChartNodes.order);
   }
 
   // Dashboard methods
-  async getDashboardStats(): Promise<{
+  async getDashboardStats(companyId?: number): Promise<{
     totalEmployees: number;
     activeToday: number;
     onLeaveToday: number;
     pendingLeaveRequests: number;
   }> {
-    // Total employees
-    const employeesResult = await db.select({ count: sql<number>`count(*)` }).from(employees);
-    const totalEmployees = employeesResult[0]?.count || 0;
-
-    // Active today (employees with attendance today)
     const today = new Date().toISOString().split('T')[0];
-    const activeResult = await db.select({ count: sql<number>`count(*)` })
+    const whereClause = companyId ? and(eq(employees.companyId, companyId)) : undefined;
+    
+    const [totalEmployees] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(employees)
+      .where(whereClause);
+
+    const [activeToday] = await db
+      .select({ count: sql<number>`count(*)` })
       .from(attendance)
-      .where(
-        and(
-          sql`date(${attendance.date}) = ${today}`,
-          eq(attendance.status, 'present')
-        )
-      );
-    const activeToday = activeResult[0]?.count || 0;
+      .where(and(
+        eq(attendance.date, today),
+        companyId ? eq(attendance.companyId, companyId) : undefined
+      ));
 
-    // On leave today
-    const todayDate = new Date();
-    const leaveResult = await db.select({ count: sql<number>`count(*)` })
+    const [onLeaveToday] = await db
+      .select({ count: sql<number>`count(*)` })
       .from(leaves)
-      .where(
-        and(
-          sql`date(${leaves.startDate}) <= ${today}`,
-          sql`date(${leaves.endDate}) >= ${today}`,
-          eq(leaves.status, 'approved')
-        )
-      );
-    const onLeaveToday = leaveResult[0]?.count || 0;
+      .where(and(
+        sql`${leaves.startDate} <= ${today} AND ${leaves.endDate} >= ${today}`,
+        eq(leaves.status, 'approved'),
+        companyId ? eq(leaves.companyId, companyId) : undefined
+      ));
 
-    // Pending leave requests
-    const pendingResult = await db.select({ count: sql<number>`count(*)` })
+    const [pendingLeaveRequests] = await db
+      .select({ count: sql<number>`count(*)` })
       .from(leaves)
-      .where(eq(leaves.status, 'pending'));
-    const pendingLeaveRequests = pendingResult[0]?.count || 0;
+      .where(and(
+        eq(leaves.status, 'pending'),
+        companyId ? eq(leaves.companyId, companyId) : undefined
+      ));
 
     return {
-      totalEmployees,
-      activeToday,
-      onLeaveToday,
-      pendingLeaveRequests
+      totalEmployees: totalEmployees?.count || 0,
+      activeToday: activeToday?.count || 0,
+      onLeaveToday: onLeaveToday?.count || 0,
+      pendingLeaveRequests: pendingLeaveRequests?.count || 0
     };
   }
 
-  async getDepartmentDistribution(): Promise<{ 
+  async getDepartmentDistribution(companyId?: number): Promise<{ 
     departmentId: number; 
     name: string; 
     count: number; 
     percentage: number;
   }[]> {
-    // Get total employees
-    const totalResult = await db.select({ count: sql<number>`count(*)` }).from(employees);
-    const totalEmployees = totalResult[0]?.count || 0;
+    const whereClause = companyId ? and(eq(employees.companyId, companyId)) : undefined;
+    
+    const totalEmployees = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(employees)
+      .where(whereClause);
 
-    if (totalEmployees === 0) {
-      return [];
-    }
-
-    // Get department counts
-    const departmentCounts = await db.select({
-      departmentId: employees.departmentId,
-      count: sql<number>`count(*)`
-    })
-    .from(employees)
-    .groupBy(employees.departmentId);
-
-    // Get department names and calculate percentages
-    const distribution = await Promise.all(
-      departmentCounts.map(async (item) => {
-        const department = await this.getDepartment(item.departmentId);
-        return {
-          departmentId: item.departmentId,
-          name: department?.name || 'Unknown',
-          count: item.count,
-          percentage: Math.round((item.count / totalEmployees) * 100)
-        };
+    const departmentCounts = await db
+      .select({
+        departmentId: departments.id,
+        name: departments.name,
+        count: sql<number>`count(*)`
       })
-    );
+      .from(employees)
+      .innerJoin(departments, eq(employees.departmentId, departments.id))
+      .where(whereClause)
+      .groupBy(departments.id, departments.name);
 
-    return distribution;
+    const total = totalEmployees[0]?.count || 0;
+    return departmentCounts.map(d => ({
+      ...d,
+      percentage: total > 0 ? Math.round((d.count / total) * 100) : 0
+    }));
   }
 
-  async getRecentEmployees(limit: number): Promise<Employee[]> {
+  async getRecentEmployees(limit: number, companyId?: number): Promise<Employee[]> {
+    const whereClause = companyId ? and(eq(employees.companyId, companyId)) : undefined;
     return db.select()
       .from(employees)
-      .orderBy(desc(employees.createdAt))
+      .where(whereClause)
+      .orderBy(desc(employees.dateOfJoining))
       .limit(limit);
   }
 
-  async getRecentActivities(limit: number): Promise<ActivityLog[]> {
+  async getRecentActivities(limit: number, companyId?: number): Promise<ActivityLog[]> {
+    const whereClause = companyId ? and(eq(activityLogs.companyId, companyId)) : undefined;
     return db.select()
       .from(activityLogs)
+      .where(whereClause)
       .orderBy(desc(activityLogs.createdAt))
       .limit(limit);
+  }
+
+  async getEmployeesByType(employeeTypeId: number): Promise<Employee[]> {
+    return await db.select().from(employees).where(eq(employees.employeeTypeId, employeeTypeId));
   }
 }
 

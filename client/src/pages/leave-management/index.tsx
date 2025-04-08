@@ -307,7 +307,7 @@ export default function LeaveManagementPage() {
           <Avatar className="h-8 w-8 mr-2">
             {leave.employeeAvatar && <AvatarImage src={leave.employeeAvatar} alt={leave.employeeName} />}
             <AvatarFallback>
-              {leave.employeeName.split(" ").map(n => n[0]).join("").toUpperCase()}
+              {leave.employeeName ? leave.employeeName.split(" ").map(n => n[0]).join("").toUpperCase() : "?"}
             </AvatarFallback>
           </Avatar>
           <div>
@@ -760,7 +760,7 @@ export default function LeaveManagementPage() {
                             <Avatar className="h-8 w-8 mr-2">
                               {leave.employeeAvatar && <AvatarImage src={leave.employeeAvatar} alt={leave.employeeName} />}
                               <AvatarFallback>
-                                {leave.employeeName.split(" ").map(n => n[0]).join("").toUpperCase()}
+                                {leave.employeeName ? leave.employeeName.split(" ").map(n => n[0]).join("").toUpperCase() : "?"}
                               </AvatarFallback>
                             </Avatar>
                             <div>
