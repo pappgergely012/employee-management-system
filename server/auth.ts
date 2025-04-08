@@ -5,7 +5,11 @@ import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage";
-import { User as SelectUser, insertUserSchema } from "@shared/schema";
+import { 
+  User as SelectUser, 
+  insertUserSchema, 
+  insertEmployeeSchema 
+} from "@shared/schema";
 import { z } from "zod";
 
 declare global {
@@ -102,6 +106,43 @@ export function setupAuth(app: Express) {
         role: 'admin', // Override with admin role
         password: hashedPassword,
       });
+
+      // Create an employee record for the admin user
+      // The format will be: HR-YYYY-XXXX
+      const year = new Date().getFullYear();
+      const employeeCount = await storage.getEmployees()
+        .then(employees => employees.filter(e => e.employeeId.startsWith(`HR-${year}`)).length);
+      
+      const employeeId = `HR-${year}-${String(employeeCount + 1).padStart(4, '0')}`;
+      
+      try {
+        // Create employee record for the admin user
+        await storage.createEmployee({
+          employeeId,
+          firstName: validatedData.fullName.split(' ')[0] || 'Admin',
+          lastName: validatedData.fullName.split(' ').slice(1).join(' ') || 'User',
+          email: validatedData.email,
+          departmentId: 4, // Finance & HR Department
+          designationId: 6, // HR Manager
+          employeeTypeId: 1, // Full-Time
+          shiftId: 1, // Day Shift
+          locationId: 1, // Head Office
+          dateOfJoining: new Date().toISOString().split('T')[0],
+          dateOfBirth: '1990-01-01', // Default date of birth
+          gender: 'Male', // Default gender
+          isActive: true
+        });
+        
+        // Log the employee creation
+        await storage.createActivityLog({
+          userId: user.id,
+          action: "Employee Record Created",
+          details: `Employee record created for user ${validatedData.username} with employee ID ${employeeId}`
+        });
+      } catch (employeeError) {
+        console.error("Failed to create employee record:", employeeError);
+        // Continue even if employee creation fails, as the user is already created
+      }
 
       // Create activity log for user creation
       await storage.createActivityLog({
