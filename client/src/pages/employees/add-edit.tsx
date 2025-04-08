@@ -53,6 +53,15 @@ export default function AddEditEmployee() {
   // Get employee data if in edit mode
   const { data: employee, isLoading: isLoadingEmployee } = useQuery<Employee>({
     queryKey: ['/api/employees', Number(params.id)],
+    queryFn: async () => {
+      console.log("Fetching employee with ID:", params.id);
+      // Directly fetch the employee data by ID
+      const response = await fetch(`/api/employees/${params.id}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch employee data');
+      }
+      return response.json();
+    },
     enabled: isEditMode,
   });
 
