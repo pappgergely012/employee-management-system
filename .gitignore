@@ -12,3 +12,4 @@ vite.config.ts.*
 .env.production.local
 .env.development
 .env.test.env
+.env
