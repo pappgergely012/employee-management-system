@@ -99,7 +99,7 @@ export default function Sidebar({ isOpen, closeSidebar }: SidebarProps) {
           <p className="pl-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Main</p>
           <NavItem
             icon={<LayoutDashboard size={18} />}
-            href="/"
+            href="/dashboard"
             label="Dashboard"
             currentPath={location}
           />

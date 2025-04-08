@@ -17,15 +17,17 @@ import Shifts from "@/pages/configuration/shifts";
 import LeaveTypes from "@/pages/configuration/leave-types";
 import Locations from "@/pages/configuration/locations";
 import AuthPage from "@/pages/auth-page";
+import HomePage from "@/pages/home-page";
 import { ProtectedRoute } from "./lib/protected-route";
 import { AuthProvider } from "./hooks/use-auth";
 
 function Router() {
   return (
     <Switch>
+      <Route path="/" component={HomePage} />
       <Route path="/auth" component={AuthPage} />
       
-      <ProtectedRoute path="/" component={Dashboard} />
+      <ProtectedRoute path="/dashboard" component={Dashboard} />
       
       <ProtectedRoute path="/employees" component={Employees} />
       <ProtectedRoute path="/employees/add" component={AddEditEmployee} />
