@@ -793,26 +793,15 @@ export default function AddEditEmployee() {
                     ) : (
                       <>
                         <div className="flex justify-between items-center mb-4">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              let newDate;
-                              if (calendarView === "week") {
-                                newDate = new Date(calendarDate);
-                                newDate.setDate(newDate.getDate() - 7);
-                              } else if (calendarView === "month") {
-                                newDate = new Date(calendarDate);
-                                newDate.setMonth(newDate.getMonth() - 1);
-                              } else {
-                                newDate = new Date(calendarDate);
-                                newDate.setFullYear(newDate.getFullYear() - 1);
-                              }
-                              setCalendarDate(newDate);
-                            }}
-                          >
-                            Previous {calendarView}
-                          </Button>
+                          <div className="flex space-x-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setCalendarDate(new Date())}
+                            >
+                              Today
+                            </Button>
+                          </div>
                           <h3 className="text-lg font-semibold">
                             {calendarView === "week" && (
                               <>
@@ -826,26 +815,9 @@ export default function AddEditEmployee() {
                               <>{format(calendarDate, "yyyy")}</>
                             )}
                           </h3>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              let newDate;
-                              if (calendarView === "week") {
-                                newDate = new Date(calendarDate);
-                                newDate.setDate(newDate.getDate() + 7);
-                              } else if (calendarView === "month") {
-                                newDate = new Date(calendarDate);
-                                newDate.setMonth(newDate.getMonth() + 1);
-                              } else {
-                                newDate = new Date(calendarDate);
-                                newDate.setFullYear(newDate.getFullYear() + 1);
-                              }
-                              setCalendarDate(newDate);
-                            }}
-                          >
-                            Next {calendarView}
-                          </Button>
+                          <div className="invisible w-[70px]">
+                            {/* Spacer to maintain flex alignment */}
+                          </div>
                         </div>
 
                         <div className="mt-4 w-full">
@@ -877,22 +849,23 @@ export default function AddEditEmployee() {
                                       <div className="text-xl">{format(day, "d")}</div>
                                     </div>
                                     <div className="flex-1 overflow-y-auto space-y-1 scrollbar-thin">
-                                      {dayLeaves.map((leave) => (
-                                        <div key={leave.id} className="mb-1">
-                                          <Badge
-                                            className="w-full justify-center text-xs py-1"
-                                            variant={
-                                              leave.status === "Approved"
-                                                ? "default"
-                                                : leave.status === "Rejected"
-                                                ? "destructive"
-                                                : "outline"
-                                            }
-                                          >
-                                            {leave.leaveType?.name || "Leave"}
-                                          </Badge>
-                                        </div>
-                                      ))}
+                                      {dayLeaves.map((leave) => {
+                                        const getStatusStyle = (status: string): string => {
+                                          if (status === "Approved") return "bg-green-500 text-white";
+                                          if (status === "Rejected") return "bg-red-500 text-white";
+                                          return "bg-gray-200 text-gray-700";
+                                        };
+                                        
+                                        return (
+                                          <div key={leave.id} className="mb-1">
+                                            <div 
+                                              className={`w-full rounded-full h-[30px] flex items-center justify-center text-xs px-2 ${getStatusStyle(leave.status)}`}
+                                            >
+                                              {leave.leaveType?.name || "Leave"}
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
                                     </div>
                                   </div>
                                 );
@@ -953,14 +926,36 @@ export default function AddEditEmployee() {
                                     });
 
                                     const showDayOfMonth = isSameMonth(date, calendarDate);
+                                    
+                                    // Determine color based on leave status
+                                    let bgColor = "";
+                                    let textColor = "";
+                                    
+                                    if (dayLeaves.length > 0 && showDayOfMonth) {
+                                      // Check if any approved leaves
+                                      const hasApproved = dayLeaves.some(leave => leave.status === "Approved");
+                                      // Check if any rejected leaves
+                                      const hasRejected = dayLeaves.some(leave => leave.status === "Rejected");
+                                      
+                                      if (hasApproved) {
+                                        bgColor = "bg-green-500";
+                                        textColor = "text-white";
+                                      } else if (hasRejected) {
+                                        bgColor = "bg-red-500";
+                                        textColor = "text-white";
+                                      } else {
+                                        bgColor = "bg-gray-200";
+                                        textColor = "text-gray-700";
+                                      }
+                                    }
 
                                     return (
                                       <div className="relative h-10 w-10 p-0 font-normal aria-selected:opacity-100 flex items-center justify-center">
                                         <div
                                           className={cn(
                                             "flex h-8 w-8 items-center justify-center rounded-md",
-                                            dayLeaves.length > 0 && showDayOfMonth && 
-                                              "bg-primary/10 text-primary font-medium"
+                                            dayLeaves.length > 0 && showDayOfMonth && bgColor,
+                                            dayLeaves.length > 0 && showDayOfMonth && textColor
                                           )}
                                         >
                                           {showDayOfMonth ? date.getDate() : null}
@@ -1002,13 +997,36 @@ export default function AddEditEmployee() {
                                 const isCurrentMonth = new Date().getMonth() === index && 
                                                       new Date().getFullYear() === calendarDate.getFullYear();
                                 
+                                // Determine color based on leave status
+                                let bgColor = "";
+                                let textColor = "";
+                                
+                                if (monthLeaves.length > 0) {
+                                  // Check if any approved leaves
+                                  const hasApproved = monthLeaves.some(leave => leave.status === "Approved");
+                                  // Check if any rejected leaves
+                                  const hasRejected = monthLeaves.some(leave => leave.status === "Rejected");
+                                  
+                                  if (hasApproved) {
+                                    bgColor = "bg-green-100 border-green-500";
+                                    textColor = "text-green-800";
+                                  } else if (hasRejected) {
+                                    bgColor = "bg-red-100 border-red-500";
+                                    textColor = "text-red-800";
+                                  } else {
+                                    bgColor = "bg-gray-100 border-gray-400";
+                                    textColor = "text-gray-800";
+                                  }
+                                }
+                                
                                 return (
                                   <div 
                                     key={index}
                                     className={cn(
-                                      "aspect-square p-3 border rounded-md text-center cursor-pointer hover:bg-accent/50 hover:shadow-md transition-all shadow-sm flex flex-col justify-between",
-                                      monthLeaves.length > 0 && "border-primary",
-                                      isCurrentMonth && "bg-accent/50"
+                                      "aspect-square p-3 border rounded-md text-center cursor-pointer hover:shadow-md transition-all shadow-sm flex flex-col justify-between",
+                                      isCurrentMonth && !bgColor && "bg-accent/50",
+                                      bgColor,
+                                      textColor
                                     )}
                                     onClick={() => {
                                       const newDate = new Date(calendarDate);
@@ -1019,9 +1037,9 @@ export default function AddEditEmployee() {
                                   >
                                     <div className="font-medium text-lg">{monthName}</div>
                                     {monthLeaves.length > 0 ? (
-                                      <Badge variant="outline" className="mt-auto mx-auto">
+                                      <div className="mt-auto mx-auto rounded-full bg-white/80 px-3 py-1 text-sm font-medium shadow-sm">
                                         {monthLeaves.length} {monthLeaves.length === 1 ? "leave" : "leaves"}
-                                      </Badge>
+                                      </div>
                                     ) : (
                                       <div className="text-sm text-muted-foreground mt-auto">No leaves</div>
                                     )}
@@ -1039,9 +1057,9 @@ export default function AddEditEmployee() {
                               {employeeLeaves.slice(0, 5).map((leave) => (
                                 <div 
                                   key={leave.id} 
-                                  className="p-3 border rounded-md"
+                                  className="p-3 border rounded-md shadow-sm"
                                 >
-                                  <div className="flex justify-between">
+                                  <div className="flex justify-between items-center">
                                     <div>
                                       <span className="font-medium">{leave.leaveType?.name || "Leave"}</span>
                                       <div className="text-sm text-muted-foreground mt-1">
@@ -1053,17 +1071,17 @@ export default function AddEditEmployee() {
                                         </div>
                                       )}
                                     </div>
-                                    <Badge
-                                      variant={
-                                        leave.status === "Approved"
-                                          ? "default"
-                                          : leave.status === "Rejected"
-                                          ? "destructive"
-                                          : "outline"
+                                    <div 
+                                      className={`rounded-full h-[30px] px-4 flex items-center justify-center text-sm font-medium
+                                        ${leave.status === "Approved" 
+                                          ? "bg-green-500 text-white" 
+                                          : leave.status === "Rejected" 
+                                          ? "bg-red-500 text-white" 
+                                          : "bg-gray-200 text-gray-700"}`
                                       }
                                     >
                                       {leave.status}
-                                    </Badge>
+                                    </div>
                                   </div>
                                 </div>
                               ))}
